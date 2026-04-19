@@ -1,0 +1,7 @@
+{"input": "икс плюс игрек", "expected": "x + y"}
+{"input": "корень из икс плюс игрек", "expected": "\\sqrt{x + y}"}
+{"input": "синус от альфа делить на бета", "expected": "\\sin(\\frac{\\alpha}{\\beta})"}
+{"input": "интеграл от ноля до пяти от икс в квадрате", "expected": "\\int_{0}^{5} x^2 \\, dx"}
+{"input": "икс делить на игрек всё делить на зет", "expected": "\\frac{\\frac{x}{y}}{z}"}
+{"input": "пэ равно эм цэ в квадрате", "expected": "p = mc^2"}
+{"input": "дэ игрек по дэ икс", "expected": "\\frac{dy}{dx}"}

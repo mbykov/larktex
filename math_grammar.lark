@@ -1,0 +1,47 @@
+?start: expr
+
+?expr: term | expr PLUS term -> add | expr MINUS term -> sub | expr EQUAL term -> eq
+
+?term: factor | term factor -> mul | factor div_op factor -> simple_div | expr VSE div_op factor -> complex_div
+
+?div_op: DIV | PO | TIMES
+
+?factor: base 
+
+       | base POW2 -> pow_2 | base POW3 -> pow_3
+       | expr VSE POW2 -> complex_pow_2 | expr VSE POW3 -> complex_pow_3
+       | SQRT expr -> sqrt 
+
+       | SIN expr -> sin
+       | INT base DO base expr -> integral
+
+?base: var | num | UNKNOWN | "(" expr ")"
+
+// REMOVED ! from var to prevent Tree-wrapping issues
+?var: spec_var | simple_var
+
+!spec_var.2: "d" "x" -> dx | "d" "y" -> dy | "d" "z" -> dz
+
+!simple_var: "a" | "b" | "c" | "d" | "e" | "x" | "y" | "z" | "p" | "m"
+
+           | "alpha" | "beta" | "gamma" | "pi"
+
+!num: "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+
+PLUS: "PLUS"
+MINUS: "MINUS"
+EQUAL: "EQUAL"
+VSE: "VSE"
+DIV: "DIV"
+PO: "PO"
+POW2: "POW2"
+POW3: "POW3"
+SQRT: "SQRT"
+SIN: "SIN"
+INT: "INT"
+DO: "DO"
+TIMES: "TIMES"
+UNKNOWN: /[а-яёa-z0-9_]+/
+
+%import common.WS
+%ignore WS

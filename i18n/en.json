@@ -1,0 +1,16 @@
+{
+  "LATIN": {
+    "a": ["a"], "b": ["b"], "c": ["c"], "d": ["d"], "p": ["p"], "m": ["m"],
+    "x": ["x"], "y": ["y"], "z": ["z"], "h": ["h"]
+  },
+  "GREEK": {
+    "alpha": ["alpha"], "beta": ["beta"], "gamma": ["gamma"], "pi": ["pi"]
+  },
+  "OPS": {
+    "PLUS": ["plus"], "MINUS": ["minus"], "EQUAL": ["equals", "equal to"], "VSE": ["done", "end"],
+    "DIV": ["divide"], "PO": ["over"], "TIMES": ["times"],
+    "POW2": ["squared"], "POW3": ["cubed"], "SQRT": ["square root"],
+    "SIN": ["sine"], "INT": ["integral"], "DO": ["to"]
+  },
+  "NUMS": { "0": ["zero"], "1": ["one"], "2": ["two"], "3": ["three"], "5": ["five"] }
+}
