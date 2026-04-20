@@ -262,7 +262,7 @@
 "rus": отрицание эй меньше гамма параллель дабл минус ю, "script": \neg A < \Gamma \parallel w
 "rus": у параллель а показатель степени @, "script": U \parallel A^{@}
 "rus": эпсилон от эн тау кью, "script": \epsilon_{N \tau q}
-"rus": синус и плюс дельта от лямбда эм, "script": \sin(e) + \delta_{\Lambda m}
+"rus": синус е и плюс дельта от лямбда эм, "script": \sin(e) + \delta_{\Lambda m}
 "rus": черта сверху контурный интеграл от от оу ди ди тета минус контурный неопределённый интеграл от пустое множество хэйч дэ t, "script": \bar{\oint_{O} d d\Theta} - \oint_{\emptyset} H dt
 "rus": дэ gamma, "script": dgamma
 "rus": ар показатель степени би плюс эта плюс минус минус тета, "script": r^{B} + \eta \pm \theta

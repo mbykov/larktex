@@ -1,0 +1,15 @@
+"rus": синус омега плюс ипсилон не превышает хи, "script": \sin(\omega) + \upsilon \le \chi
+"rus": эй звезда лапласиан не превышает косинус эм, "script": a \star \Delta \le \cos(m)
+"rus": синус е и плюс дельта от лямбда эм, "script": \sin(e) + \delta_{\Lambda m}
+"rus": косинус омега, "script": \cos(\Omega)
+"rus": косинус крышка ю не превышает крышка определитель эйч, "script": \cos(\hat{u}) < \hat{\det(H)}
+"rus": синус собственное число минус ай строго меньше эл, "script": \sin(\lambda) - i < l
+"rus": синус гамма, "script": \sin(\Gamma)
+"rus": косинус отношение частная штрих бета частная штрих пси превышает дробь частная дифференциал следовательно эл частная производная собственное число, "script": \cos(\frac{\partial \beta}{\partial \Psi}) > \frac{\partial \therefore l}{\partial \lambda}
+"rus": косинус пи строго меньше отрицание дельта, "script": \cos(P) < \neg \delta
+"rus": vec ай превышает косинус эн, "script": \vec{I} > \cos(n)
+"rus": синус эпсилон, "script": \sin(\epsilon)
+"rus": синус ипсилон астериск вэ, "script": \sin(\Upsilon) \ast V
+"rus": квадратный корень пси минус косинус омега, "script": \sqrt{\Psi} - \cos(\omega)
+"rus": экспонента би строго меньше синус йота, "script": \exp(B) < \sin(\iota)
+"rus": эпсилон от косинус дабл минус ю дэ кси, "script": \epsilon_{\cos(w) D \xi}
