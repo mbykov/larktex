@@ -1,79 +1,78 @@
-start: (expr | standalone_op)
+?start: (expr | standalone_op)
 
-# 1. Уровень сравнений (ВЕРШИНА)
+# 1. Уровень сравнений
 ?expr: arith_expr
 
-     | arith_expr _EQUAL arith_expr -> eq
-     | arith_expr _LT arith_expr    -> lt
-     | arith_expr _LE arith_expr    -> le
+     | expr EQUAL arith_expr -> eq
+     | expr LT arith_expr    -> lt
+     | expr LE arith_expr    -> le
 
-     | arith_expr _GT arith_expr    -> gt
+     | expr GT arith_expr    -> gt
 
 # 2. Одиночные операции
-?standalone_op: _PLUS arith_expr  -> add_unary
-              | _MINUS arith_expr -> sub_unary
+?standalone_op: PLUS arith_expr  -> add_unary
+              | MINUS arith_expr -> sub_unary
 
 # 3. Арифметика (Сложение/Вычитание)
 ?arith_expr: term
 
-           | arith_expr _PLUS term   -> add
-           | arith_expr _MINUS term  -> sub
-           | arith_expr _STAR term -> star_mul
+           | arith_expr PLUS term   -> add
+           | arith_expr MINUS term  -> sub
 
 # 4. Умножение и деление
 ?term: factor
 
-     | term _STAR factor      -> star_mul  # <--- Добавить сюда
-     | term _DIV factor       -> simple_div
-     | term _PO factor        -> simple_div
+     | term STAR factor      -> star_mul
+     | term DIV factor       -> simple_div
+     | term PO factor        -> simple_div
 
-     | term factor            -> mul
+     | term factor           -> mul
+     | arith_expr VSE DIV factor -> complex_div
 
-     | arith_expr _VSE _DIV factor -> complex_div
-
-# 5. Функции, корни и степени (самый высокий приоритет)
+# 5. Функции и степени
 ?factor: base
-       | base _POW2           -> pow_2
-       | base _POW3           -> pow_3
 
-       | _SQRT [_IZ] arith_expr -> sqrt
-       | _SIN [_OT] factor    -> sin
-       | _COS [_OT] factor    -> cos
-       | _SUM [_OT] base [_DO] base [_OT] arith_expr -> integral_full
+       | factor POW2         -> pow_2
+       | factor POW3         -> pow_3
+       | SQRT [IZ] arith_expr -> sqrt
+
+       | SIN [OT] factor    -> sin
+       | COS [OT] factor    -> cos
+       | SUM [OT] base [DO] base [OT] arith_expr -> integral_full
 
 # 6. Базовые элементы
 ?base: var | num | "(" expr ")"
 
 ?var: spec_var | simple_var
-
-# Приоритет .2 для греческих букв, чтобы они не разбивались на части
-GREEK_VAR.2: "alpha" | "beta" | "gamma" | "pi" | "omega" | "upsilon" | "chi" | "eta" | "theta" | "phi" | "Omega" | "Delta"
 spec_var.2: "d" "x" -> dx | "d" "y" -> dy | "d" "z" -> dz
-simple_var: GREEK_VAR | "a".."z" | "F"
+
+# Сюда вставляются данные из JSON
+simple_var: DYNAMIC_GREEK | DYNAMIC_LATIN | "F"
+DYNAMIC_GREEK.2: {GREEK_LIST}
+DYNAMIC_LATIN: {LATIN_LIST}
 
 num: "0".."9"+
 
-# Скрытые терминалы (начинаются с _)
-_PLUS: "PLUS"
-_MINUS: "MINUS"
-_EQUAL: "EQUAL"
-_VSE: "VSE"
-_DIV: "DIV"
-_PO: "PO"
-_POW2: "POW2"
-_POW3: "POW3"
-_SQRT: "SQRT"
-_SIN: "SIN"
-_SUM: "SUM"
-_DO: "DO"
-_OT: "OT"
-_IZ: "IZ"
-_TIMES: "TIMES"
-_LT: "LT"
-_LE: "LE"
-_GT: "GT"
-_STAR: "STAR"
-_COS: "COS"
+# Терминалы (БЕЗ подчеркиваний)
+PLUS: "PLUS"
+MINUS: "MINUS"
+EQUAL: "EQUAL"
+VSE: "VSE"
+DIV: "DIV"
+PO: "PO"
+POW2: "POW2"
+POW3: "POW3"
+SQRT: "SQRT"
+SIN: "SIN"
+COS: "COS"
+SUM: "SUM"
+DO: "DO"
+OT: "OT"
+IZ: "IZ"
+STAR: "STAR"
+LT: "LT"
+LE: "LE"
+GT: "GT"
 
 %import common.WS
 %ignore WS

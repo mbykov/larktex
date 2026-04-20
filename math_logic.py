@@ -1,93 +1,119 @@
+import logging
 from lark import Transformer, Token
 
+# Configure logging
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
+logger = logging.getLogger("MathLogic")
+
+def debug_rule(expected_count=None):
+    """Decorator to verify what Lark passes to the transformer"""
+    def decorator(func):
+        def wrapper(self, items):
+            if expected_count is not None and len(items) != expected_count:
+                logger.debug(f"!!! Rule '{func.__name__}' got {len(items)} items: {items}")
+            else:
+                logger.debug(f"Rule '{func.__name__}' items: {items}")
+            return func(self, items)
+        return wrapper
+    return decorator
+
 class MathToLatex(Transformer):
+    def __init__(self, symbols_db):
+        self.symbols_db = symbols_db
+
     def _clean(self, item):
-        """Рекурсивно извлекает строку из токенов и списков Lark."""
+        """Recursively extracts string values from Lark Tokens/Lists"""
         if isinstance(item, list):
             return self._clean(item[0]) if item else ""
         if isinstance(item, Token):
             return str(item.value)
         return str(item)
 
-    # --- Уровень сравнений (2 аргумента) ---
-    def lt(self, items):
-        return f"{self._clean(items[0])} < {self._clean(items[1])}"
+    # --- Comparisons (3 items: left, OP, right) ---
+    @debug_rule(expected_count=3)
+    def eq(self, items): return f"{self._clean(items[0])} = {self._clean(items[2])}"
 
-    def le(self, items):
-        return f"{self._clean(items[0])} \\le {self._clean(items[1])}"
+    @debug_rule(expected_count=3)
+    def lt(self, items): return f"{self._clean(items[0])} < {self._clean(items[2])}"
 
-    def gt(self, items):
-        return f"{self._clean(items[0])} > {self._clean(items[1])}"
+    @debug_rule(expected_count=3)
+    def le(self, items): return f"{self._clean(items[0])} \\le {self._clean(items[2])}"
 
-    def eq(self, items):
-        return f"{self._clean(items[0])} = {self._clean(items[1])}"
+    @debug_rule(expected_count=3)
+    def gt(self, items): return f"{self._clean(items[0])} > {self._clean(items[2])}"
 
-    # --- Уровень арифметики (2 аргумента) ---
-    def add(self, items):
-        return f"{self._clean(items[0])} + {self._clean(items[1])}"
+    # --- Arithmetic (3 items: left, OP, right) ---
+    @debug_rule(expected_count=3)
+    def add(self, items): return f"{self._clean(items[0])} + {self._clean(items[2])}"
 
-    def sub(self, items):
-        return f"{self._clean(items[0])} - {self._clean(items[1])}"
+    @debug_rule(expected_count=3)
+    def sub(self, items): return f"{self._clean(items[0])} - {self._clean(items[2])}"
 
-    def mul(self, items):
-        # Умножение обычно пишется слитно в LaTeX (например, mc^2)
-        return f"{self._clean(items[0])}{self._clean(items[1])}"
+    # --- Multiplication & Division ---
+    @debug_rule(expected_count=2) # term factor -> mul
+    def mul(self, items): return f"{self._clean(items[0])}{self._clean(items[1])}"
 
-    def add_unary(self, items):
-        return f"+ {self._clean(items[0])}"
+    @debug_rule(expected_count=3) # term STAR factor
+    def star_mul(self, items): return f"{self._clean(items[0])} \\star {self._clean(items[2])}"
 
-    def sub_unary(self, items):
-        return f"- {self._clean(items[0])}"
-
-    # --- Уровень термов (деление) ---
+    @debug_rule(expected_count=3) # term DIV/PO factor
     def simple_div(self, items):
-        return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[1])}}}"
+        return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[2])}}}"
 
+    @debug_rule(expected_count=4) # arith_expr VSE DIV factor
     def complex_div(self, items):
-        return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[1])}}}"
+        return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[3])}}}"
 
-    # --- Уровень факторов (функции и степени) ---
+    # --- Functions (2 items: OP, factor) ---
+    @debug_rule(expected_count=2)
     def sqrt(self, items):
-        return f"\\sqrt{{{self._clean(items[0])}}}"
+        # Берем самый последний элемент - это всегда будет само выражение
+        content = self._clean(items[-1])
+        return f"\\sqrt{{{content}}}"
 
+    @debug_rule(expected_count=None)
     def sin(self, items):
-        return f"\\sin({self._clean(items[0])})"
+        content = self._clean(items[-1])
+        return f"\\sin({content})"
 
-    def pow_2(self, items):
-        return f"{self._clean(items[0])}^2"
+    @debug_rule(expected_count=None)
+    def cos(self, items):
+        content = self._clean(items[-1])
+        return f"\\cos({content})"
 
-    def pow_3(self, items):
-        return f"{self._clean(items[0])}^3"
+    # --- Powers (2 items: base, OP) ---
+    @debug_rule(expected_count=2)
+    def pow_2(self, items): return f"{self._clean(items[0])}^2"
 
+    @debug_rule(expected_count=2)
+    def pow_3(self, items): return f"{self._clean(items[0])}^3"
+
+    # --- Integrals (4 items: SUM, low, high, body) ---
+    @debug_rule(expected_count=4)
     def integral_full(self, items):
-        # Ожидается: [low, high, body]
-        return f"\\int_{{{self._clean(items[0])}}}^{{{self._clean(items[1])}}} {self._clean(items[2])} \\, dx"
+        return f"\\int_{{{self._clean(items[1])}}}^{{{self._clean(items[2])}}} {self._clean(items[3])} \\, dx"
 
-    # --- Базовые элементы ---
+    # --- Unary ---
+    @debug_rule(expected_count=2)
+    def add_unary(self, items): return f"+ {self._clean(items[1])}"
+
+    @debug_rule(expected_count=2)
+    def sub_unary(self, items): return f"- {self._clean(items[1])}"
+
+    # --- Variables ---
     def simple_var(self, items):
         val = self._clean(items)
-        # Список греческих букв, требующих обратный слэш
-        greeks = [
-            "alpha", "beta", "gamma", "pi", "omega", "upsilon",
-            "chi", "eta", "theta", "phi", "Omega", "Lambda", "Delta"
-        ]
-        if val in greeks:
+        # Dynamic check in symbols_db
+        info = self.symbols_db.get(val)
+        if info and info.get("type") == "greek":
             return f"\\{val}"
         return val
 
     def var(self, items): return self._clean(items)
     def num(self, items): return self._clean(items)
-
     def dx(self, _): return "dx"
     def dy(self, _): return "dy"
     def dz(self, _): return "dz"
 
-    def star_mul(self, items):
-      return f"{self._clean(items[0])} \\star {self._clean(items[1])}"
-
-    def cos(self, items):
-      return f"\\cos({self._clean(items)})"
-
     def __default__(self, data, children, meta):
-        # Если правило не определено явно, пробрасываем результат вверх
-        return children[0] if len(children) == 1 else children
+        return children if len(children) == 1 else children
