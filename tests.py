@@ -9,14 +9,19 @@ def run_tests():
     try:
         with open('tests.jsonl', 'r', encoding='utf-8') as f:
             for line in f:
+                line = line.strip()
+                if not line: continue
+
                 total += 1
                 data = json.loads(line)
                 text = data['input']
                 expected = data['expected']
 
-                result = ex.transform(text)
+                result = ex.transform_text(text)
+                # Очищаем $ для сравнения
+                clean_result = result.replace('$', '')
 
-                if result == expected:
+                if clean_result == expected:
                     print(f"✅ PASS: {text} -> {result}")
                     passed += 1
                 else:

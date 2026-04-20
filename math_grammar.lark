@@ -1,47 +1,56 @@
-?start: expr
+?start: (expr | standalone_op)
 
-?expr: term | expr PLUS term -> add | expr MINUS term -> sub | expr EQUAL term -> eq
+?expr: term
 
-?term: factor | term factor -> mul | factor div_op factor -> simple_div | expr VSE div_op factor -> complex_div
+     | expr _PLUS term   -> add
+     | expr _MINUS term  -> sub
+     | expr _EQUAL term  -> eq
 
-?div_op: DIV | PO | TIMES
+?standalone_op: _PLUS term  -> add_unary
 
-?factor: base 
+              | _MINUS term -> sub_unary
 
-       | base POW2 -> pow_2 | base POW3 -> pow_3
-       | expr VSE POW2 -> complex_pow_2 | expr VSE POW3 -> complex_pow_3
-       | SQRT expr -> sqrt 
+?term: factor
+     | term factor       -> mul
+     | term _DIV factor  -> simple_div
 
-       | SIN expr -> sin
-       | INT base DO base expr -> integral
+     | term _PO factor   -> simple_div
+     | expr _VSE _DIV factor  -> complex_div
 
-?base: var | num | UNKNOWN | "(" expr ")"
+?factor: base
 
-// REMOVED ! from var to prevent Tree-wrapping issues
+       | base _POW2       -> pow_2
+       | base _POW3       -> pow_3
+       | _SQRT [_IZ] expr -> sqrt
+
+       | _SIN [_OT] expr  -> sin
+       | _SUM [_OT] base [_DO] base [_OT] expr -> integral_full
+
+?base: var | num | "(" expr ")"
+
 ?var: spec_var | simple_var
 
-!spec_var.2: "d" "x" -> dx | "d" "y" -> dy | "d" "z" -> dz
+// Приоритет .2 заставляет Lark узнавать слово целиком
+GREEK_VAR.2: "alpha" | "beta" | "gamma" | "pi"
+spec_var.2: "d" "x" -> dx | "d" "y" -> dy | "d" "z" -> dz
+simple_var: GREEK_VAR | "a".."z"
 
-!simple_var: "a" | "b" | "c" | "d" | "e" | "x" | "y" | "z" | "p" | "m"
+num: "0".."9"+
 
-           | "alpha" | "beta" | "gamma" | "pi"
-
-!num: "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
-
-PLUS: "PLUS"
-MINUS: "MINUS"
-EQUAL: "EQUAL"
-VSE: "VSE"
-DIV: "DIV"
-PO: "PO"
-POW2: "POW2"
-POW3: "POW3"
-SQRT: "SQRT"
-SIN: "SIN"
-INT: "INT"
-DO: "DO"
-TIMES: "TIMES"
-UNKNOWN: /[а-яёa-z0-9_]+/
+_PLUS: "PLUS"
+_MINUS: "MINUS"
+_EQUAL: "EQUAL"
+_VSE: "VSE"
+_DIV: "DIV"
+_PO: "PO"
+_POW2: "POW2"
+_POW3: "POW3"
+_SQRT: "SQRT"
+_SIN: "SIN"
+_SUM: "SUM"
+_DO: "DO"
+_OT: "OT"
+_IZ: "IZ"
 
 %import common.WS
 %ignore WS
