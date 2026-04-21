@@ -62,8 +62,8 @@ def latex_to_svg_and_show(latex_code, view=True):
 
         return svg_file
 
-    except Exception as e:
-        print(f"\nSystem Error: {e}")
+    except Exception as exc:
+        print(f"\nSystem Error: {exc}")
     finally:
         # Убираем за собой
         for ext in ['.tex', '.pdf', '.log', '.aux', '.xdv']:

@@ -4,40 +4,57 @@
     "1": ["один"],
     "2": ["два", "двух"],
     "3": ["три", "трех"],
-    "5": ["пять", "пяти"]
+    "4": ["четыре", "четырех"],
+    "5": ["пять", "пяти"],
+    "6": ["шесть", "шести"],
+    "7": ["семь", "семи"],
+    "8": ["восемь", "восьми"],
+    "9": ["девять", "девяти"],
+    "10": ["десять"],
+    "100": ["сто"]
   },
   "symbols": {
-    "x":       {"aliases": ["икс"], "type": "latin"},
-    "y":       {"aliases": ["игрек"], "type": "latin"},
-    "z":       {"aliases": ["зет"], "type": "latin"},
-    "p":       {"aliases": ["пэ"], "type": "latin"},
-    "m":       {"aliases": ["эм"], "type": "latin"},
-    "c":       {"aliases": ["цэ"], "type": "latin"},
-    "d":       {"aliases": ["дэ"], "type": "latin"},
-    "e":       {"aliases": ["е", "буква е"], "type": "latin"},
-    "alpha":   {"aliases": ["альфа"], "type": "greek"},
-    "beta":    {"aliases": ["бета"], "type": "greek"},
-    "omega":   {"aliases": ["омега"], "type": "greek"},
+    "x": {"aliases": ["икс"], "type": "latin"},
+    "y": {"aliases": ["игрек"], "type": "latin"},
+    "z": {"aliases": ["зет"], "type": "latin"},
+    "p": {"aliases": ["пэ"], "type": "latin"},
+    "m": {"aliases": ["эм"], "type": "latin"},
+    "c": {"aliases": ["цэ"], "type": "latin"},
+    "d": {"aliases": ["дэ"], "type": "latin"},
+    "e": {"aliases": ["е", "буква е"], "type": "latin"},
+    "alpha": {"aliases": ["альфа"], "type": "greek"},
+    "beta": {"aliases": ["бета"], "type": "greek"},
+    "gamma": {"aliases": ["гамма"], "type": "greek"},
+    "pi": {"aliases": ["пи"], "type": "greek"},
+    "omega": {"aliases": ["омега"], "type": "greek"},
     "upsilon": {"aliases": ["ипсилон"], "type": "greek"},
-    "chi":     {"aliases": ["хи"], "type": "greek"},
-    "eta":     {"aliases": ["эта"], "type": "greek"},
-    "Delta":   {"aliases": ["лапласиан", "дельта"], "type": "greek"}
+    "chi": {"aliases": ["хи"], "type": "greek"},
+    "eta": {"aliases": ["эта"], "type": "greek"},
+    "Delta": {"aliases": ["лапласиан", "дельта"], "type": "greek"}
   },
   "operators": {
-    "PLUS":    {"aliases": ["плюс"], "type": "infix"},
-    "MINUS":   {"aliases": ["минус"], "type": "infix"},
-    "EQUAL":   {"aliases": ["равно"], "type": "infix"},
-    "DIV":     {"aliases": ["делить", "разделить"], "type": "infix"},
-    "LE":      {"aliases": ["меньше или равно"], "type": "infix"},
-    "LT":      {"aliases": ["меньше", "строго меньше"], "type": "infix"},
-    "GT":      {"aliases": ["больше", "строго больше"], "type": "infix"},
-    "STAR":    {"aliases": ["звезда"], "type": "infix"},
-    "POW2":    {"aliases": ["квадрате"], "type": "postfix"},
-    "POW3":    {"aliases": ["кубе"], "type": "postfix"},
-    "SQRT":    {"aliases": ["корень"], "type": "prefix"},
-    "SIN":     {"aliases": ["синус"], "type": "prefix"},
-    "COS":     {"aliases": ["косинус"], "type": "prefix"},
-    "SUM":     {"aliases": ["интеграл", "сумма"], "type": "prefix"}
+    "PLUS": {"aliases": ["плюс"], "type": "infix"},
+    "MINUS": {"aliases": ["минус"], "type": "infix"},
+    "EQUAL": {"aliases": ["равно", "равняется"], "type": "infix"},
+    "DIV": {"aliases": ["делить"], "type": "infix"},
+    "TIMES": {"aliases": ["умножить"], "type": "infix"},
+    "LE": {"aliases": ["меньше или равно", "не превышает"], "type": "infix"},
+    "LT": {"aliases": ["меньше", "строго меньше"], "type": "infix"},
+    "GT": {"aliases": ["больше", "строго больше"], "type": "infix"},
+    "POW2": {"aliases": ["квадрате"], "type": "postfix"},
+    "POW3": {"aliases": ["кубе"], "type": "postfix"},
+    "SQRT": {"aliases": ["корень"], "type": "prefix"},
+    "SIN": {"aliases": ["синус"], "type": "prefix"},
+    "COS": {"aliases": ["косинус"], "type": "prefix"},
+    "INT": {"aliases": ["интеграл"], "type": "prefix"},
+    "SUM": {"aliases": ["сумма"], "type": "prefix"}
+  },
+  "composite_operators": {
+    "DIV": ["делить на", "разделить на"],
+    "TIMES": ["умножить на", "помножить на"],
+    "LE": ["не превышает"],
+    "POW2": ["в квадрате", "квадрат"],
+    "POW3": ["в кубе", "куб"]
   },
   "structural": {
     "BRIDGE": {
@@ -45,9 +62,12 @@
       "OT": ["от"],
       "DO": ["до"],
       "PO": ["по"],
+      "DE": ["де", "дэ"],
       "NA": ["на"]
     },
     "IGNORE": ["функция", "переменная"],
-    "VSE": ["всё", "все", "vse"]
-  }
+    "VSE": ["всё", "все"],
+    "MATH_STOPWORDS": ["в", "квадрат", "куб"]
+  },
+  "noise_words": ["скобка", "скобки", "скобка открывается", "скобка закрывается", "открывается скобка", "закрывается скобка", "вот", "так", "это", "ого", "ну", "далее", "затем"]
 }

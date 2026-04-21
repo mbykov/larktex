@@ -11,26 +11,75 @@ class MathToLatex(Transformer):
                 return self._clean(item[0])
             return "".join([self._clean(i) for i in item])
         if isinstance(item, Token):
-            return str(item.value)
+            val = str(item.value)
+            # Игнорируем служебные токены
+            if val in ["OT", "DO", "IZ", "PO", "SUM", "VSE"]:
+                return ""
+            return val
         return str(item)
 
-    def eq(self, items): return f"{self._clean(items[0])} = {self._clean(items[2])}"
-    def lt(self, items): return f"{self._clean(items[0])} < {self._clean(items[2])}"
-    def le(self, items): return f"{self._clean(items[0])} \\le {self._clean(items[2])}"
-    def gt(self, items): return f"{self._clean(items[0])} > {self._clean(items[2])}"
+    #
+    def integral_full(self, items):
+      """INT [OT] base [DO] base [OT] arith_expr DE var"""
+      args = []
+      var = "x"  # по умолчанию
 
-    def complex_div(self, items):
-        return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[2])}}}"
+      for i, item in enumerate(items):
+        if isinstance(item, Token):
+            token = str(item)
+            if token in ["INT", "OT", "DO", "PO"]:  # добавили PO
+                continue
+            if token == "DE":
+                # Следующий элемент - переменная
+                if i + 1 < len(items):
+                    var = self._clean(items[i + 1])
+                continue
+        args.append(self._clean(item))
 
-    def add(self, items): return f"{self._clean(items[0])} + {self._clean(items[2])}"
-    def sub(self, items): return f"{self._clean(items[0])} - {self._clean(items[2])}"
+      if len(args) >= 3:
+        low = args[0]
+        high = args[1]
+        body = args[2]
+        return f"\\int_{{{low}}}^{{{high}}}{body}\\,d{var}"
 
-    def mul(self, items): return f"{self._clean(items[0])}{self._clean(items[1])}"
-    def star_mul(self, items): return f"{self._clean(items[0])} \\star {self._clean(items[2])}"
+      return "Error: invalid integral"
+
+
+    def complex_op(self, items):
+        left = self._clean(items[0])
+        op = self._clean(items[2])
+        right = self._clean(items[3])
+
+        if op == "DIV":
+            return f"\\frac{{{left}}}{{{right}}}"
+
+        op_map = {
+            "PLUS": "+",
+            "MINUS": "-",
+            "TIMES": "\\cdot",
+            "EQUAL": "=",
+            "LT": "<",
+            "LE": "\\le",
+            "GT": ">"
+        }
+        return f"{left}{op_map.get(op, op)}{right}"
+
+    def simple_end(self, items):
+        return self._clean(items[0])
+
+    def eq(self, items): return f"{self._clean(items[0])}={self._clean(items[2])}"
+    def lt(self, items): return f"{self._clean(items[0])}<{self._clean(items[2])}"
+    def le(self, items): return f"{self._clean(items[0])}\\le{self._clean(items[2])}"
+    def gt(self, items): return f"{self._clean(items[0])}>{self._clean(items[2])}"
+
+    def add(self, items): return f"{self._clean(items[0])}+{self._clean(items[2])}"
+    def sub(self, items): return f"{self._clean(items[0])}-{self._clean(items[2])}"
+    def implicit_mul(self, items): return f"{self._clean(items[0])}{self._clean(items[1])}"
+    def times_mul(self, items): return f"{self._clean(items[0])}\\cdot{self._clean(items[2])}"
     def simple_div(self, items): return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[2])}}}"
 
-    def add_unary(self, items): return f"+ {self._clean(items[1])}"
-    def sub_unary(self, items): return f"- {self._clean(items[1])}"
+    def add_unary(self, items): return f"+{self._clean(items[1])}"
+    def sub_unary(self, items): return f"-{self._clean(items[1])}"
 
     def sqrt(self, items): return f"\\sqrt{{{self._clean(items[-1])}}}"
     def sin(self, items): return f"\\sin({self._clean(items[-1])})"
@@ -39,9 +88,12 @@ class MathToLatex(Transformer):
     def pow_2(self, items): return f"{self._clean(items[0])}^2"
     def pow_3(self, items): return f"{self._clean(items[0])}^3"
 
-    def integral_full(self, items):
-        # items: [SUM, low, high, body]
-        return f"\\int_{{{self._clean(items[1])}}}^{{{self._clean(items[2])}}} {self._clean(items[3])} \\, dx"
+    def derivative(self, items):
+      """DE var PO DE var"""
+      # items: [DE, y, PO, DE, x]
+      numerator = self._clean(items[1])
+      denominator = self._clean(items[4])
+      return f"\\frac{{d{numerator}}}{{d{denominator}}}"
 
     def simple_var(self, items):
         val = self._clean(items)

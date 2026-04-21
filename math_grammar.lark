@@ -1,47 +1,42 @@
 ?start: (expr | standalone_op)
 
-# Убираем ?, чтобы зафиксировать структуру для сложных переходов
 expr: arith_expr
+    | arith_expr VSE operator arith_expr   -> complex_op
+    | arith_expr VSE                       -> simple_end
 
-    | arith_expr EQUAL arith_expr      -> eq
-    | arith_expr LT arith_expr         -> lt
-    | arith_expr LE arith_expr         -> le
+?standalone_op: PLUS arith_expr   -> add_unary
+              | MINUS arith_expr  -> sub_unary
 
-    | arith_expr GT arith_expr         -> gt
-    | arith_expr VSE_DIV arith_expr    -> complex_div
-
-?standalone_op: PLUS arith_expr        -> add_unary
-
-              | MINUS arith_expr       -> sub_unary
+operator: PLUS | MINUS | TIMES | DIV | EQUAL | LT | LE | GT
 
 arith_expr: term
-          | arith_expr PLUS term       -> add
-          | arith_expr MINUS term      -> sub
+          | arith_expr PLUS term   -> add
+          | arith_expr MINUS term  -> sub
 
 ?term: factor
-
-     | term STAR factor                -> star_mul
-     | term DIV factor                 -> simple_div
-     | term PO factor                  -> simple_div
-
-     | term factor                     -> mul
+     | term TIMES factor           -> times_mul
+     | term DIV factor             -> simple_div
+     | term factor                 -> implicit_mul
 
 ?factor: base
-       | factor POW2                   -> pow_2
-       | factor POW3                   -> pow_3
+       | factor POW2               -> pow_2
+       | factor POW3               -> pow_3
+       | SQRT [IZ] arith_expr      -> sqrt
+       | SIN [OT] arith_expr       -> sin
+       | COS [OT] arith_expr       -> cos
+       | INT [OT] base [DO] base [OT] arith_expr [PO] DE var -> integral_full
 
-       | SQRT [IZ] arith_expr          -> sqrt
-       | SIN [OT] arith_expr           -> sin
-       | COS [OT] arith_expr           -> cos
+?base: var | num | "(" expr ")" | derivative
 
-       | SUM [OT] base [DO] base [OT] arith_expr -> integral_full
+derivative: DE var PO DE var -> derivative
 
-?base: var | num | "(" expr ")"
+// ?var: spec_var | simple_var
+?var: simple_var
 
-?var: spec_var | simple_var
-spec_var.2: "d" "x" -> dx | "d" "y" -> dy | "d" "z" -> dz
+// spec_var: DX -> dx | DY -> dy | DZ -> dz
 
 simple_var: DYNAMIC_GREEK | DYNAMIC_LATIN | "F"
+
 DYNAMIC_GREEK.2: {GREEK_LIST}
 DYNAMIC_LATIN: {LATIN_LIST}
 
@@ -49,24 +44,26 @@ num: "0".."9"+
 
 PLUS: "PLUS"
 MINUS: "MINUS"
-EQUAL: "EQUAL"
-VSE: "VSE"
-VSE_DIV: "VSE_DIV"
+TIMES: "TIMES"
 DIV: "DIV"
-PO: "PO"
+EQUAL: "EQUAL"
+LT: "LT"
+LE: "LE"
+GT: "GT"
+VSE: "VSE"
+
 POW2: "POW2"
 POW3: "POW3"
 SQRT: "SQRT"
 SIN: "SIN"
 COS: "COS"
+INT: "INT"
 SUM: "SUM"
-DO: "DO"
-OT: "OT"
 IZ: "IZ"
-STAR: "STAR"
-LT: "LT"
-LE: "LE"
-GT: "GT"
+OT: "OT"
+DO: "DO"
+PO: "PO"
+DE: "DE"
 
 %import common.WS
 %ignore WS

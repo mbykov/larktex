@@ -1,127 +1,310 @@
-import os, json, re, logging
+import os
+import json
+import re
+import logging
 from lark import Lark
 from math_logic import MathToLatex
 from num_converter import NumConverter
 
+logger = logging.getLogger("MathExtractor")
+
 class MathExtractor:
-    def __init__(self, i18n_dir='i18n'):
+    def __init__(self, i18n_dir='i18n', lang='ru'):
+        self.lang = lang
         self.symbols_db = {}
-        self.norm_map = {}
+        self.norm_map = {}          # слово -> токен (для простых замен)
+        self.composite_map = {}     # фраза -> токен (для многословных операторов)
         self.bridges = set()
         self.ignore_words = set()
-        self.num_data = {}
+        self.vse_aliases = set()
+        self.math_stopwords = set()
+        self.noise_words = set()
+        self.de_aliases = set()     # алиасы для "де", "дэ"
+        self.num_data = {}          # слово -> цифра (например, "ноль" -> "0")
 
-        self._load_all_i18n(i18n_dir)
+        self._load_language_data(i18n_dir, lang)
         self.num_converter = NumConverter(self.num_data)
         self.parser = self._build_parser()
         self.transformer = MathToLatex(self.symbols_db)
 
-    def _load_all_i18n(self, i18n_dir):
+    def _load_language_data(self, i18n_dir, lang):
+        """Загружает данные конкретного языка из JSON файла"""
         base_path = os.path.dirname(os.path.abspath(__file__))
-        full_path = os.path.join(base_path, i18n_dir)
-        if not os.path.exists(full_path): return
+        full_path = os.path.join(base_path, i18n_dir, f"{lang}.json")
 
-        for filename in os.listdir(full_path):
-            if not filename.endswith('.json'): continue
-            with open(os.path.join(full_path, filename), 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                self.num_data.update(data.get("numbers", {}))
+        if not os.path.exists(full_path):
+            logger.error(f"Language file {full_path} not found")
+            return
 
-                for key, info in data.get("symbols", {}).items():
-                    self.symbols_db[key] = info
-                    for a in info["aliases"]: self.norm_map[a.lower()] = key
+        with open(full_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
 
-                for key, info in data.get("operators", {}).items():
-                    for a in info["aliases"]: self.norm_map[a.lower()] = key
+        # Числа: "0": ["ноль", "ноля"] -> {"ноль": "0", "ноля": "0"}
+        for digit, words in data.get("numbers", {}).items():
+            for word in words:
+                self.num_data[word.lower()] = digit
 
-                struct = data.get("structural", {})
-                # Обработка BRIDGE как словаря
-                bridge_data = struct.get("BRIDGE", {})
-                if isinstance(bridge_data, dict):
-                    for b_key, aliases in bridge_data.items():
-                        for a in aliases:
-                            self.norm_map[a.lower()] = b_key
-                            self.bridges.add(a.lower())
+        # Символы (переменные)
+        for key, info in data.get("symbols", {}).items():
+            self.symbols_db[key] = info
+            for alias in info.get("aliases", []):
+                self.norm_map[alias.lower()] = key
 
-                self.ignore_words.update([i.lower() for i in struct.get("IGNORE", [])])
-                for a in struct.get("VSE", []): self.norm_map[a.lower()] = "VSE"
+        # Операторы (однословные)
+        for key, info in data.get("operators", {}).items():
+            for alias in info.get("aliases", []):
+                self.norm_map[alias.lower()] = key
+
+        # Составные операторы (многословные)
+        for key, phrases in data.get("composite_operators", {}).items():
+            for phrase in phrases:
+                self.composite_map[phrase.lower()] = key
+
+        # Структурные элементы
+        struct = data.get("structural", {})
+
+        # Мосты (предлоги: из, от, до, по, де)
+        bridge_data = struct.get("BRIDGE", {})
+        if isinstance(bridge_data, dict):
+            for b_key, aliases in bridge_data.items():
+                for alias in aliases:
+                    self.norm_map[alias.lower()] = b_key
+                    self.bridges.add(alias.lower())
+                    # Специально для DE
+                    if b_key == "DE":
+                        self.de_aliases.add(alias.lower())
+
+        # Игнорируемые слова (функция, переменная)
+        self.ignore_words.update([w.lower() for w in struct.get("IGNORE", [])])
+
+        # VSE (маркер конца выражения)
+        self.vse_aliases.update([w.lower() for w in struct.get("VSE", [])])
+
+        # Математические стоп-слова (всегда считаются математикой)
+        self.math_stopwords.update([w.lower() for w in struct.get("MATH_STOPWORDS", [])])
+
+        # Шумовые слова (удаляются препроцессором)
+        self.noise_words.update(data.get("noise_words", []))
 
     def _build_parser(self):
+        """Строит парсер Lark с динамической подстановкой словарей"""
         greek = [f'"{k}"' for k, v in self.symbols_db.items() if v.get("type") == "greek"]
         latin = [f'"{k}"' for k, v in self.symbols_db.items() if v.get("type") == "latin"]
         g_str = " | ".join(greek) if greek else '"EMPTY_GREEK"'
         l_str = " | ".join(latin) if latin else '"EMPTY_LATIN"'
 
-        with open('math_grammar.lark', 'r', encoding='utf-8') as f:
+        grammar_path = os.path.join(os.path.dirname(__file__), 'math_grammar.lark')
+        with open(grammar_path, 'r', encoding='utf-8') as f:
             template = f.read()
+
         grammar = template.replace("{GREEK_LIST}", g_str).replace("{LATIN_LIST}", l_str)
-        return Lark(grammar, start='start')
+        return Lark(grammar, start='start', parser='earley')
+
+    def preprocess_text(self, text):
+        """Удаляет стилевой шум (скобка, вот, так и т.д.)"""
+        text = text.lower()
+        for noise in sorted(self.noise_words, key=len, reverse=True):
+            pattern = r'\b' + re.escape(noise) + r'\b'
+            text = re.sub(pattern, ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
+
+    def _is_number_word(self, word):
+        """Проверяет, является ли слово числом (в любом падеже)"""
+        word_lower = word.lower()
+        # Прямое попадание
+        if word_lower in self.num_data:
+            return True
+        # Приводим к именительному падежу и проверяем
+        normalized = self.num_converter._normalize_case(word_lower)
+        return normalized in self.num_data
 
     def is_math_word(self, word):
-        clean = re.sub(r'[^а-яёa-z0-9]', '', word.lower())
-        extra = ["в", "на", "квадрате", "кубе", "не", "превышает", "vse", "vsediv"]
-        return (clean in self.norm_map or clean.isdigit() or
-                clean in self.bridges or clean in self.ignore_words or clean in extra)
+        """Проверяет, относится ли слово к математическому острову"""
+        clean = word.lower()
+
+        # Числа (в любом падеже)
+        if self._is_number_word(clean):
+            return True
+
+        # Цифры
+        if clean.isdigit():
+            return True
+
+        # Из словаря нормализации
+        if clean in self.norm_map:
+            return True
+
+        # Мосты
+        if clean in self.bridges:
+            return True
+
+        # Игнорируемые слова
+        if clean in self.ignore_words:
+            return True
+
+        # Стоп-слова
+        if clean in self.math_stopwords:
+            return True
+
+        # VSE
+        if clean in self.vse_aliases:
+            return True
+
+        # DE алиасы
+        if clean in self.de_aliases:
+            return True
+
+        return False
 
     def normalize_island(self, text):
-        tokens = re.findall(r'[а-яёa-z0-9]+', text.lower())
+        """Преобразует текст математического острова в последовательность токенов"""
+        logger.debug(f"normalize_island INPUT: '{text}'")
+
+        # Конвертируем числа
+        text = self.num_converter.replace(text)
+        # Убираем стилевой шум
+        text = self.preprocess_text(text)
+
+        # Разбиваем на слова
+        tokens = text.split()
+
         res = []
         i = 0
         while i < len(tokens):
-            t = tokens[i]
-            if t in self.ignore_words:
-                i += 1; continue
-            if t == "всё" and i + 2 < len(tokens) and tokens[i+1] == "делить" and tokens[i+2] == "на":
-                res.append("VSE_DIV"); i += 3; continue
-            if t == "не" and i + 1 < len(tokens) and tokens[i+1] == "превышает":
-                res.append("LE"); i += 2; continue
-            if t == "делить" and i + 1 < len(tokens) and tokens[i+1] == "на":
-                res.append("DIV"); i += 2; continue
-            if t == "в" and i + 1 < len(tokens):
-                if tokens[i+1] == "квадрате": res.append("POW2"); i += 2; continue
-                if tokens[i+1] == "кубе": res.append("POW3"); i += 2; continue
-            if t.isdigit(): res.append(t)
-            elif t in self.norm_map: res.append(self.norm_map[t])
-            elif t in self.bridges: res.append(t.upper())
+            # Пробуем найти составной оператор (самый длинный)
+            matched = False
+            for phrase, token in sorted(self.composite_map.items(), key=lambda x: len(x[0].split()), reverse=True):
+                phrase_words = phrase.split()
+                if i + len(phrase_words) <= len(tokens):
+                    if [tokens[i + j] for j in range(len(phrase_words))] == phrase_words:
+                        res.append(token)
+                        i += len(phrase_words)
+                        matched = True
+                        break
+
+            if matched:
+                continue
+
+            word = tokens[i]
+
+            # Проверяем VSE
+            if word in self.vse_aliases:
+                res.append("VSE")
+                i += 1
+                continue
+
+            # Обработка DE + переменная (де икс, де игрек, де зет)
+            if word in self.de_aliases and i + 1 < len(tokens):
+                next_word = tokens[i + 1]
+                if next_word in self.norm_map:
+                  var = self.norm_map[next_word]  # это будет "x", "y", "alpha" и т.д.
+                  res.append("DE")
+                  res.append(var)  # x, а не DX
+                  i += 2
+                  continue
+
+            # Проверяем игнорируемые слова — пропускаем
+            if word in self.ignore_words:
+                i += 1
+                continue
+
+            # Проверяем нормализацию
+            if word in self.norm_map:
+                res.append(self.norm_map[word])
+            elif word.isdigit():
+                res.append(word)
+            elif word in self.num_data:
+                # Число словом -> цифра
+                res.append(self.num_data[word])
+            else:
+                # Неизвестное слово — оставляем как есть
+                res.append(word)
+
             i += 1
-        return " ".join(res)
+
+        result = " ".join(res)
+        logger.debug(f"normalize_island OUTPUT: '{result}'")
+        return result
+
+    def parse_island(self, text):
+        """Парсит нормализованный остров в LaTeX"""
+        norm = self.normalize_island(text)
+        logger.debug(f"Normalized: {norm}")
+
+        # Пробуем спарсить без добавления VSE
+        try:
+            logger.debug(f"Trying without VSE: '{norm}'")
+            tree = self.parser.parse(norm)
+            res = self.transformer.transform(tree)
+            while isinstance(res, list):
+                if len(res) == 1:
+                    res = res[0]
+                else:
+                    res = "".join([str(x) for x in res])
+            return res
+        except Exception as exc:
+            logger.debug(f"Failed without VSE: {exc}")
+            pass
+
+        # Если не получилось, пробуем с VSE в конце
+        try:
+            test_norm = norm + " VSE"
+            logger.debug(f"Trying WITH VSE: '{test_norm}'")
+            tree = self.parser.parse(test_norm)
+            res = self.transformer.transform(tree)
+            while isinstance(res, list):
+                if len(res) == 1:
+                    res = res[0]
+                else:
+                    res = "".join([str(x) for x in res])
+            return res
+        except Exception as exc:
+            logger.error(f"Parse error: {exc}")
+            return "Error"
 
     def transform_text(self, text):
+        """Основной метод: сегментирует текст, парсит математические острова"""
+        logger.debug(f"transform_text INPUT: '{text}'")
+
+        # Конвертируем числа
         text = self.num_converter.replace(text)
+        logger.debug(f"after num_converter: '{text}'")
+
         words = text.split()
-        segments, current = [], []
+        logger.debug(f"words: {words}")
+
+        segments = []
+        current = []
+
         for w in words:
-            if self.is_math_word(w): current.append(w)
+            is_math = self.is_math_word(w)
+            logger.debug(f"word: '{w}', is_math: {is_math}")
+            if is_math:
+                current.append(w)
             else:
-                if current: segments.append(('math', " ".join(current)))
+                if current:
+                    segments.append(('math', " ".join(current)))
+                    current = []
                 segments.append(('text', w))
-                current = []
-        if current: segments.append(('math', " ".join(current)))
+
+        if current:
+            segments.append(('math', " ".join(current)))
+
+        logger.debug(f"segments: {segments}")
+
         result = []
-        for stype, val in segments:
-            if stype == 'math':
+        for seg_type, val in segments:
+            if seg_type == 'math':
+                logger.debug(f"processing math segment: '{val}'")
                 latex = self.parse_island(val)
-                result.append(f"${latex}$" if "Error" not in str(latex) else val)
-            else: result.append(val)
-        return " ".join(result)
+                if "Error" not in str(latex):
+                    result.append(f"${latex}$")
+                else:
+                    result.append(val)
+            else:
+                result.append(val)
 
-    #
-    def parse_island(self, text):
-        norm = self.normalize_island(text)
-        for i in range(6):
-            try:
-                tree = self.parser.parse(norm + (" VSE" * i))
-                res = self.transformer.transform(tree)
-
-                # Recursively unwrap the result until it's a string
-                while isinstance(res, list):
-                    if len(res) == 1:
-                        res = res[0]
-                    else:
-                        # If there are multiple items (unlikely here), join them
-                        res = "".join([str(x) for x in res])
-
-                return res
-            except:
-                continue
-        return "Error"
+        final_result = " ".join(result)
+        logger.debug(f"transform_text RESULT: '{final_result}'")
+        return final_result
