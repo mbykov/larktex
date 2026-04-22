@@ -7,14 +7,23 @@ expr: arith_expr
 ?standalone_op: PLUS arith_expr   -> add_unary
               | MINUS arith_expr  -> sub_unary
 
-operator: PLUS | MINUS | TIMES | DIV | EQUAL | LT | LE | GT
+operator: PLUS | MINUS | TIMES | CDOT | DIV | EQUAL | LT | LE | GT | GE | NEQ | PM | MP | SLASH
 
 arith_expr: term
           | arith_expr PLUS term   -> add
           | arith_expr MINUS term  -> sub
+          | arith_expr EQUAL term  -> eq
+          | arith_expr NEQ term    -> neq
+          | arith_expr GE term     -> ge   # добавляем
+          | arith_expr GT term     -> gt   # если ещё нет
+          | arith_expr LT term     -> lt
+          | arith_expr LE term     -> le
+          | arith_expr PM term     -> pm
+          | arith_expr MP term     -> mp
 
 ?term: factor
      | term TIMES factor           -> times_mul
+     | term CDOT factor            -> cdot_mul
      | term DIV factor             -> simple_div
      | term factor                 -> implicit_mul
 
@@ -24,7 +33,16 @@ arith_expr: term
        | SQRT [IZ] arith_expr      -> sqrt
        | SIN [OT] arith_expr       -> sin
        | COS [OT] arith_expr       -> cos
-       | INT [OT] base [DO] base [OT] arith_expr [PO] DE var -> integral_full
+       // | INT [OT] base [DO] base [OT] arith_expr [PO] DE var -> integral_full
+       | integral                    # интеграл без пределов
+       | integral_full               # интеграл с пределами
+       | DELTA arith_expr -> laplacian
+
+# Интеграл без пределов
+integral: INT [OT] arith_expr [PO] DE var -> integral
+
+# Интеграл с пределами
+integral_full: INT [OT] base [DO] base [OT] arith_expr [PO] DE var -> integral_full
 
 ?base: var | num | "(" expr ")" | derivative
 
@@ -64,6 +82,14 @@ OT: "OT"
 DO: "DO"
 PO: "PO"
 DE: "DE"
+DELTA: "DELTA"
+
+NEQ: "NEQ"
+GE: "GE"
+PM: "PM"
+MP: "MP"
+CDOT: "CDOT"
+SLASH: "SLASH"
 
 %import common.WS
 %ignore WS

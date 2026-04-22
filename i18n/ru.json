@@ -30,31 +30,41 @@
     "upsilon": {"aliases": ["ипсилон"], "type": "greek"},
     "chi": {"aliases": ["хи"], "type": "greek"},
     "eta": {"aliases": ["эта"], "type": "greek"},
-    "Delta": {"aliases": ["лапласиан", "дельта"], "type": "greek"}
+    "theta": {"aliases": ["тета"], "type": "greek"},
+    "delta": {"aliases": ["дельта"], "type": "greek"}
   },
   "operators": {
     "PLUS": {"aliases": ["плюс"], "type": "infix"},
     "MINUS": {"aliases": ["минус"], "type": "infix"},
     "EQUAL": {"aliases": ["равно", "равняется"], "type": "infix"},
     "DIV": {"aliases": ["делить"], "type": "infix"},
-    "TIMES": {"aliases": ["умножить"], "type": "infix"},
-    "LE": {"aliases": ["меньше или равно", "не превышает"], "type": "infix"},
-    "LT": {"aliases": ["меньше", "строго меньше"], "type": "infix"},
-    "GT": {"aliases": ["больше", "строго больше"], "type": "infix"},
-    "POW2": {"aliases": ["квадрате"], "type": "postfix"},
-    "POW3": {"aliases": ["кубе"], "type": "postfix"},
+    "POW2": {"aliases": ["квадрат"], "type": "postfix"},
+    "POW3": {"aliases": ["куб"], "type": "postfix"},
     "SQRT": {"aliases": ["корень"], "type": "prefix"},
     "SIN": {"aliases": ["синус"], "type": "prefix"},
     "COS": {"aliases": ["косинус"], "type": "prefix"},
     "INT": {"aliases": ["интеграл"], "type": "prefix"},
-    "SUM": {"aliases": ["сумма"], "type": "prefix"}
+    "SUM": {"aliases": ["сумма"], "type": "prefix"},
+    "Delta": {"aliases": ["лапласиан"], "type": "prefix"},
+
+    "PLUS": {"aliases": ["плюс"], "type": "infix"},
+    "MINUS": {"aliases": ["минус"], "type": "infix"},
+    "GT": {"aliases": ["больше"], "type": "infix"},
+    "LT": {"aliases": ["меньше"], "type": "infix"},
+    "PM": {"aliases": ["плюс-минус"], "type": "infix"},
+    "MP": {"aliases": ["минус-плюс"], "type": "infix"},
+    "CDOT": {"aliases": ["умножить"], "type": "infix"},
+    "TIMES": {"aliases": ["крестик"], "type": "infix"},
+    "SLASH": {"aliases": ["слеш"], "type": "infix"}
   },
   "composite_operators": {
     "DIV": ["делить на", "разделить на"],
-    "TIMES": ["умножить на", "помножить на"],
-    "LE": ["не превышает"],
-    "POW2": ["в квадрате", "квадрат"],
-    "POW3": ["в кубе", "куб"]
+    "CDOT": ["умножить на", "помножить на"],
+    "GE": ["не менее", "больше или равно"],
+    "LE": ["не более", "меньше или равно", "не превышает"],
+    "NEQ": ["не равно", "не равняется"],
+    "POW2": ["в квадрате"],
+    "POW3": ["в кубе"]
   },
   "structural": {
     "BRIDGE": {
@@ -67,7 +77,7 @@
     },
     "IGNORE": ["функция", "переменная"],
     "VSE": ["всё", "все"],
-    "MATH_STOPWORDS": ["в", "квадрат", "куб"]
+    "MATH_STOPWORDS": ["в", "квадрат", "квадрате", "куб", "или", "не"]
   },
   "noise_words": ["скобка", "скобки", "скобка открывается", "скобка закрывается", "открывается скобка", "закрывается скобка", "вот", "так", "это", "ого", "ну", "далее", "затем"]
 }

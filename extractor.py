@@ -102,7 +102,7 @@ class MathExtractor:
 
     def preprocess_text(self, text):
         """Удаляет стилевой шум (скобка, вот, так и т.д.)"""
-        text = text.lower()
+        # text = text.lower()
         for noise in sorted(self.noise_words, key=len, reverse=True):
             pattern = r'\b' + re.escape(noise) + r'\b'
             text = re.sub(pattern, ' ', text)
@@ -160,14 +160,27 @@ class MathExtractor:
     def normalize_island(self, text):
         """Преобразует текст математического острова в последовательность токенов"""
         logger.debug(f"normalize_island INPUT: '{text}'")
+        # logger.debug(f"composite_map keys: {list(self.composite_map.keys())}")
+        # print(f"composite_map keys: {list(self.composite_map.keys())}")
+        # print(f"Before composite: '{text}'")
 
+        for phrase, token in sorted(self.composite_map.items(), key=lambda x: len(x[0]), reverse=True):
+          text = text.replace(phrase, token)
+          # print(f"After replacing '{phrase}' -> '{token}': '{text}'")
+
+        # print(f"After composite: '{text}'")
         # Конвертируем числа
         text = self.num_converter.replace(text)
+        # print(f"After num_converter: '{text}'")
+
         # Убираем стилевой шум
         text = self.preprocess_text(text)
+        # print(f"After preprocess: '{text}'")
 
         # Разбиваем на слова
         tokens = text.split()
+        logger.debug(f"Tokens: {tokens}")
+        # print(f"Tokens: {tokens}")
 
         res = []
         i = 0
@@ -231,6 +244,7 @@ class MathExtractor:
         """Парсит нормализованный остров в LaTeX"""
         norm = self.normalize_island(text)
         logger.debug(f"Normalized: {norm}")
+        logger.debug(f"Norm repr: {repr(norm)}")
 
         # Пробуем спарсить без добавления VSE
         try:
@@ -292,6 +306,7 @@ class MathExtractor:
             segments.append(('math', " ".join(current)))
 
         logger.debug(f"segments: {segments}")
+        # print(f"DEBUG segments: {segments}")
 
         result = []
         for seg_type, val in segments:

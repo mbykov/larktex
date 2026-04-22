@@ -1,3 +1,19 @@
+
+{"input": "икс крестик игрек", "expected": "x\\timesy"}
+{"input": "икс не равно игрек", "expected": "x\\neqy"}
+{"input": "икс больше игрек", "expected": "x>y"}
+{"input": "икс меньше игрек", "expected": "x<y"}
+{"input": "икс плюс-минус игрек", "expected": "x\\pmy"}
+{"input": "икс минус-плюс игрек", "expected": "x\\mpy"}
+{"input": "икс умножить на игрек", "expected": "x\\cdoty"}
+{"input": "альфа плюс бета всё слеш гамма", "expected": "(\\alpha+\\beta) / \\gamma"}
+{"input": "тета больше или равно бета всё минус дельта", "expected": "\\theta \\ge \\beta-\\delta"}
+{"input": "икс равно игрек", "expected": "x=y"}
+{"input": "альфа плюс бета всё слеш гамма", "expected": "(\\alpha+\\beta) / \\gamma"}
+{"input": "тета больше или равно бета всё минус дельта", "expected": "\\theta \\ge \\beta-\\delta"}
+{"input": "икс равно игрек", "expected": "x=y"}
+{"input": "альфа плюс бета всё делить на гамма", "expected": "\\frac{\\alpha+\\beta}{\\gamma}"}
+{"input": "икс делить на игрек всё делить на зет", "expected": "\\frac{\\frac{x}{y}}{z}"}
 {"input": "икс плюс игрек", "expected": "x+y"}
 {"input": "корень из икс плюс игрек", "expected": "\\sqrt{x+y}"}
 {"input": "синус от альфа делить на бета", "expected": "\\sin(\\frac{\\alpha}{\\beta})"}
@@ -7,16 +23,17 @@
 {"input": "интеграл от ноля до пяти от икс по де икс в квадрате", "expected": "\\int_{0}^{5}x\\,dx^2"}
 {"input": "интеграл от ноля до пяти от икс квадрат по де икс в квадрате", "expected": "\\int_{0}^{5}x^2\\,dx^2"}
 {"input": "интеграл от ноля до пяти икс квадрат по де икс квадрат", "expected": "\\int_{0}^{5}x^2\\,dx^2"}
+{"input": "интеграл от ноля до пяти от икс по де икс в квадрате", "expected": "\\int_{0}^{5}x\\,dx^2"}
 {"input": "интеграл от ноля до пяти икс де икс", "expected": "\\int_{0}^{5}x\\,dx"}
 {"input": "интеграл от ноля до пяти икс по де икс", "expected": "\\int_{0}^{5}x\\,dx"}
-
 {"input": "интеграл от икс по де икс", "expected": "\\int x\\,dx"}
 {"input": "интеграл икс по де икс", "expected": "\\int x\\,dx"}
 
-{"input": "икс делить на игрек всё делить на зет", "expected": "\\frac{\\frac{x}{y}}{z}"}
-{"input": "пэ равно эм цэ в квадрате", "expected": "p=mc^2"}
-{"input": "дэ игрек по дэ икс", "expected": "\\frac{dy}{dx}"}
 {"input": "икс всё плюс игрек", "expected": "x+y"}
 {"input": "икс всё минус игрек", "expected": "x-y"}
+
 {"input": "икс всё умножить на игрек", "expected": "x\\cdot y"}
 {"input": "корень из икс всё плюс корень из игрек", "expected": "\\sqrt{x}+\\sqrt{y}"}
+
+{"input": "пэ равно эм цэ в квадрате", "expected": "p=mc^2"}
+{"input": "дэ игрек по дэ икс", "expected": "\\frac{dy}{dx}"}
