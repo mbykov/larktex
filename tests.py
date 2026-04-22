@@ -15,7 +15,7 @@ def run_tests(filepath):
         print(f"Error: file {filepath} not found.")
         return
 
-    print(f"--- Running tests from: {filepath} ---")
+    # print(f"--- Running tests from: {filepath} ---")
 
     with open(filepath, 'r', encoding='utf-8') as f:
         for line_num, line in enumerate(f, 1):
@@ -36,7 +36,7 @@ def run_tests(filepath):
                 result = raw_result.replace('$', '')
 
                 if result == expected:
-                    print(f"✅ PASS: {text}")
+                    print(f"✅ PASS: {text} {result}")
                     passed += 1
                 else:
                     print(f"❌ FAIL: {text}")

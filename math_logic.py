@@ -99,48 +99,48 @@ class MathToLatex(Transformer):
           return f"({left}) / {right}"
 
         op_map = {
-            "PLUS": "+",
-            "MINUS": "-",
-            "TIMES": "\\times",
-            "CDOT": "\\cdot",
-            "DIV": "\\div",  # для "делить" без VSE
-            "EQUAL": "=",
-            "NEQ": "\\neq",
-            "LT": "<",
-            "GT": ">",
-            "LE": "\\le",
-            "GE": "\\ge",
-            "PM": "\\pm",
-            "MP": "\\mp",
-            "SLASH": "/"
+            "PLUS": " + ",
+            "MINUS": " - ",
+            "TIMES": " \\times ",
+            "CDOT": "\\cdot ",
+            "DIV": " \\div ",  # для "делить" без VSE
+            "EQUAL": " = ",
+            "NEQ": " \\neq ",
+            "LT": " < ",
+            "GT": " > ",
+            "LE": " \\le ",
+            "GE": " \\ge ",
+            "PM": " \\pm ",
+            "MP": " \\mp ",
+            "SLASH": " / "
         }
         return f"{left}{op_map.get(op, op)}{right}"
 
     def simple_end(self, items):
         return self._clean(items[0])
 
-    def eq(self, items): return f"{self._clean(items[0])}={self._clean(items[2])}"
-    def neq(self, items): return f"{self._clean(items[0])}\\neq{self._clean(items[2])}"
-    def lt(self, items): return f"{self._clean(items[0])}<{self._clean(items[2])}"
-    def le(self, items): return f"{self._clean(items[0])}\\le{self._clean(items[2])}"
-    def gt(self, items): return f"{self._clean(items[0])}>{self._clean(items[2])}"
+    def eq(self, items): return f"{self._clean(items[0])} = {self._clean(items[2])}"
+    def neq(self, items): return f"{self._clean(items[0])} \\neq {self._clean(items[2])}"
+    def lt(self, items): return f"{self._clean(items[0])} < {self._clean(items[2])}"
+    def le(self, items): return f"{self._clean(items[0])} \\le {self._clean(items[2])}"
+    def gt(self, items): return f"{self._clean(items[0])} > {self._clean(items[2])}"
 
-    def pm(self, items): return f"{self._clean(items[0])}\\pm{self._clean(items[2])}"
-    def mp(self, items): return f"{self._clean(items[0])}\\mp{self._clean(items[2])}"
+    def pm(self, items): return f"{self._clean(items[0])} \\pm {self._clean(items[2])}"
+    def mp(self, items): return f"{self._clean(items[0])} \\mp {self._clean(items[2])}"
 
     def ge(self, items):
      return f"{self._clean(items[0])} \\ge {self._clean(items[2])}"
 
-    def add(self, items): return f"{self._clean(items[0])}+{self._clean(items[2])}"
-    def sub(self, items): return f"{self._clean(items[0])}-{self._clean(items[2])}"
+    def add(self, items): return f"{self._clean(items[0])} + {self._clean(items[2])}"
+    def sub(self, items): return f"{self._clean(items[0])} - {self._clean(items[2])}"
     def implicit_mul(self, items): return f"{self._clean(items[0])}{self._clean(items[1])}"
-    def times_mul(self, items): return f"{self._clean(items[0])}\\times{self._clean(items[2])}"
-    def cdot_mul(self, items): return f"{self._clean(items[0])}\\cdot{self._clean(items[2])}"
+    def times_mul(self, items): return f"{self._clean(items[0])} \\times {self._clean(items[2])}"
+    def cdot_mul(self, items): return f"{self._clean(items[0])} \\cdot {self._clean(items[2])}"
 
     def simple_div(self, items): return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[2])}}}"
 
-    def add_unary(self, items): return f"+{self._clean(items[1])}"
-    def sub_unary(self, items): return f"-{self._clean(items[1])}"
+    def add_unary(self, items): return f" + {self._clean(items[1])}"
+    def sub_unary(self, items): return f" - {self._clean(items[1])}"
 
     def sqrt(self, items): return f"\\sqrt{{{self._clean(items[-1])}}}"
     def sin(self, items): return f"\\sin({self._clean(items[-1])})"
