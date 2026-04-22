@@ -14,15 +14,15 @@
 {"input": "корень из икс плюс игрек", "expected": "\\sqrt{x + y}"}
 {"input_": "корень четвёртой степени из альфа", "expected": "\\sqrt[4]{\\alpha}"}
 {"input": "икс в квадрате", "expected": "x^2"}
-{"input": "икс в кубе", "expected": "x^3"}
-{"input": "икс в степени игрек", "expected": "x^{y}"}
-{"input": "синус икс плюс корень из игрек делить на тангенс зет", "expected": "\\sin x + \\frac{\\sqrt{y}}{\\tan z}"}
-{"input": "синус от альфа плюс бета всё делить на косинус от гамма", "expected": "\\frac{\\sin(\\alpha + \\beta)}{\\cos \\gamma}"}
-{"input": "икс в квадрате плюс игрек в кубе", "expected": "x^2 + y^3"}
-{"input": "синус икс в квадрате", "expected": "\\sin(x^2)"}
-{"input": "синус квадрат икс", "expected": "\\sin^2 x"}
-{"input": "корень из синус икс", "expected": "\\sqrt{\\sin x}"}
-{"input": "икс плюс два делить на икс минус три", "expected": "\\frac{x + 2}{x - 3}"}
+{"input_": "икс в кубе", "expected": "x^3"}
+{"input_": "икс в степени игрек", "expected": "x^{y}"}
+{"input_": "синус икс плюс корень из игрек делить на тангенс зет", "expected": "\\sin x + \\frac{\\sqrt{y}}{\\tan z}"}
+{"input_": "синус от альфа плюс бета всё делить на косинус от гамма", "expected": "\\frac{\\sin(\\alpha + \\beta)}{\\cos \\gamma}"}
+{"input_": "икс в квадрате плюс игрек в кубе", "expected": "x^2 + y^3"}
+{"input_": "синус икс в квадрате", "expected": "\\sin(x^2)"}
+{"input_": "синус квадрат икс", "expected": "\\sin^2 x"}
+{"input_": "корень из синус икс", "expected": "\\sqrt{\\sin x}"}
+{"input_": "икс плюс два делить на икс минус три", "expected": "\\frac{x + 2}{x - 3}"}
 {"input": "два икс плюс три игрек", "expected": "2x + 3y"}
 {"input": "пять минус два икс", "expected": "5 - 2x"}
 {"input": "икс делить на два", "expected": "\\frac{x}{2}"}
