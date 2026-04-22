@@ -173,5 +173,16 @@ class MathToLatex(Transformer):
     def dy(self, _): return "dy"
     def dz(self, _): return "dz"
 
+    #
+    def tan(self, items): return f"\\tan({self._clean(items[-1])})"
+    def cot(self, items): return f"\\cot({self._clean(items[-1])})"
+    def arcsin(self, items): return f"\\arcsin({self._clean(items[-1])})"
+    def arccos(self, items): return f"\\arccos({self._clean(items[-1])})"
+    def arctan(self, items): return f"\\arctan({self._clean(items[-1])})"
+    def arccot(self, items): return f"\\arccot({self._clean(items[-1])})"
+    def sinh(self, items): return f"\\sinh({self._clean(items[-1])})"
+    def cosh(self, items): return f"\\cosh({self._clean(items[-1])})"
+    def root_n(self, items): return f"\\sqrt[{self._clean(items[1])}]{{{self._clean(items[-1])}}}"
+
     def __default__(self, data, children, meta):
-        return children if len(children) == 1 else children
+      return children if len(children) == 1 else children

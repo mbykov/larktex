@@ -1,3 +1,32 @@
+{"input": "синус икс", "expected": "\\sin(x)"}
+{"input": "синус от икс плюс игрек", "expected": "\\sin(x + y)"}
+{"input": "косинус альфа", "expected": "\\cos(\\alpha)"}
+{"input": "косинус от бета минус гамма", "expected": "\\cos(\\beta - \\gamma)"}
+{"input": "тангенс тета", "expected": "\\tan(\\theta)"}
+{"input": "тангенс от два икс", "expected": "\\tan(2x)"}
+{"input": "котангенс фи", "expected": "\\cot(\\phi)"}
+
+{"input": "арксинус икс", "expected": "\\arcsin(x)"}
+{"input": "арккосинус от два икс", "expected": "\\arccos(2x)"}
+{"input": "арктангенс игрек", "expected": "\\arctan(y)"}
+{"input": "арккотангенс от икс плюс один", "expected": "\\arccot(x + 1)"}
+{"input": "квадратный корень из икс", "expected": "\\sqrt{x}"}
+{"input": "корень из икс плюс игрек", "expected": "\\sqrt{x + y}"}
+{"input_": "корень четвёртой степени из альфа", "expected": "\\sqrt[4]{\\alpha}"}
+{"input": "икс в квадрате", "expected": "x^2"}
+{"input": "икс в кубе", "expected": "x^3"}
+{"input": "икс в степени игрек", "expected": "x^{y}"}
+{"input": "синус икс плюс корень из игрек делить на тангенс зет", "expected": "\\sin x + \\frac{\\sqrt{y}}{\\tan z}"}
+{"input": "синус от альфа плюс бета всё делить на косинус от гамма", "expected": "\\frac{\\sin(\\alpha + \\beta)}{\\cos \\gamma}"}
+{"input": "икс в квадрате плюс игрек в кубе", "expected": "x^2 + y^3"}
+{"input": "синус икс в квадрате", "expected": "\\sin(x^2)"}
+{"input": "синус квадрат икс", "expected": "\\sin^2 x"}
+{"input": "корень из синус икс", "expected": "\\sqrt{\\sin x}"}
+{"input": "икс плюс два делить на икс минус три", "expected": "\\frac{x + 2}{x - 3}"}
+{"input": "два икс плюс три игрек", "expected": "2x + 3y"}
+{"input": "пять минус два икс", "expected": "5 - 2x"}
+{"input": "икс делить на два", "expected": "\\frac{x}{2}"}
+
 
 {"input": "икс крестик игрек", "expected": "x \\times y"}
 {"input": "икс не равно игрек", "expected": "x \\neq y"}
@@ -37,3 +66,13 @@
 
 {"input": "пэ равно эм цэ в квадрате", "expected": "p = mc^2"}
 {"input": "дэ игрек по дэ икс", "expected": "\\frac{dy}{dx}"}
+
+
+{"input_": "котангенс от икс все в квадрате", "expected": "\\cot(x^2)"}
+{"input_": "котангенс от икс квадрат", "expected": "\\cot(x^2)"}
+{"input_": "котангенс от икс в квадрате", "expected": "\\cot(x^2)"}
+{"input_": "котангенс от икс квадрат", "expected": "\\cot(x^2)"}
+
+{"input_": "синус гиперболический от зет", "expected": "\\sinh(z)"}
+{"input_": "косинус гиперболический от икс квадрат", "expected": "\\cosh(x^2)"}
+{"input"_: "корень кубический из икс", "expected": "\\sqrt[3]{x}"}

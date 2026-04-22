@@ -33,10 +33,21 @@ arith_expr: term
        | SQRT [IZ] arith_expr      -> sqrt
        | SIN [OT] arith_expr       -> sin
        | COS [OT] arith_expr       -> cos
-       // | INT [OT] base [DO] base [OT] arith_expr [PO] DE var -> integral_full
+
        | integral                    # интеграл без пределов
        | integral_full               # интеграл с пределами
        | DELTA arith_expr -> laplacian
+
+       | TAN [OT] arith_expr -> tan
+       | COT [OT] arith_expr -> cot
+       | ARCSIN [OT] arith_expr -> arcsin
+       | ARCCOS [OT] arith_expr -> arccos
+       | ARCTAN [OT] arith_expr -> arctan
+       | ARCCOT [OT] arith_expr -> arccot
+       | SINH [OT] arith_expr -> sinh
+       | COSH [OT] arith_expr -> cosh
+       | SQRT [IZ] arith_expr -> sqrt
+       // | SQRT [IZ] arith_expr [ROOT] arith_expr -> root_n  # корень n-й степени
 
 # Интеграл без пределов
 integral: INT [OT] arith_expr [PO] DE var -> integral
@@ -90,6 +101,17 @@ PM: "PM"
 MP: "MP"
 CDOT: "CDOT"
 SLASH: "SLASH"
+
+TAN: "TAN"
+COT: "COT"
+ARCSIN: "ARCSIN"
+ARCCOS: "ARCCOS"
+ARCTAN: "ARCTAN"
+ARCCOT: "ARCCOT"
+SINH: "SINH"
+COSH: "COSH"
+ROOT: "ROOT"
+
 
 %import common.WS
 %ignore WS
