@@ -30,6 +30,7 @@ arith_expr: term
 ?factor: base
        | factor POW2               -> pow_2
        | factor POW3               -> pow_3
+       | factor POW base           -> pow
        | SQRT [IZ] arith_expr      -> sqrt
        | SIN [OT] arith_expr       -> sin
        | COS [OT] arith_expr       -> cos
@@ -83,6 +84,7 @@ VSE: "VSE"
 
 POW2: "POW2"
 POW3: "POW3"
+POW: "POW"
 SQRT: "SQRT"
 SIN: "SIN"
 COS: "COS"

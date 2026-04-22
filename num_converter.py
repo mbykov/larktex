@@ -1,14 +1,15 @@
 import re
 import logging
+from typing import Dict
 
 logger = logging.getLogger("NumConverter")
 
 class NumConverter:
-    def __init__(self, num_core):
-        self.num_core = num_core
+    def __init__(self, num_core: Dict[str, str]) -> None:
+        self.num_core: Dict[str, str] = num_core
 
 
-    def replace(self, text):
+    def replace(self, text: str) -> str:
         """Заменяет словесные числа на цифры"""
         original = text
         words = text.split()

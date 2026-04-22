@@ -2,32 +2,34 @@ import os
 import json
 import re
 import logging
-from lark import Lark
+from typing import Dict, Set, Any, List, Tuple, Union
+import lark.exceptions
+from lark import Lark, Tree
 from math_logic import MathToLatex
 from num_converter import NumConverter
 
 logger = logging.getLogger("MathExtractor")
 
 class MathExtractor:
-    def __init__(self, i18n_dir='i18n', lang='ru'):
-        self.lang = lang
-        self.symbols_db = {}
-        self.norm_map = {}          # слово -> токен (для простых замен)
-        self.composite_map = {}     # фраза -> токен (для многословных операторов)
-        self.bridges = set()
-        self.ignore_words = set()
-        self.vse_aliases = set()
-        self.math_stopwords = set()
-        self.noise_words = set()
-        self.de_aliases = set()     # алиасы для "де", "дэ"
-        self.num_data = {}          # слово -> цифра (например, "ноль" -> "0")
+    def __init__(self, i18n_dir: str = 'i18n', lang: str = 'ru') -> None:
+        self.lang: str = lang
+        self.symbols_db: Dict[str, Dict[str, Any]] = {}
+        self.norm_map: Dict[str, str] = {}          # слово -> токен (для простых замен)
+        self.composite_map: Dict[str, str] = {}     # фраза -> токен (для многословных операторов)
+        self.bridges: Set[str] = set()
+        self.ignore_words: Set[str] = set()
+        self.vse_aliases: Set[str] = set()
+        self.math_stopwords: Set[str] = set()
+        self.noise_words: Set[str] = set()
+        self.de_aliases: Set[str] = set()     # алиасы для "де", "дэ"
+        self.num_data: Dict[str, str] = {}      # слово -> цифра (например, "ноль" -> "0")
 
         self._load_language_data(i18n_dir, lang)
-        self.num_converter = NumConverter(self.num_data)
-        self.parser = self._build_parser()
-        self.transformer = MathToLatex(self.symbols_db)
+        self.num_converter: NumConverter = NumConverter(self.num_data)
+        self.parser: Lark = self._build_parser()
+        self.transformer: MathToLatex = MathToLatex(self.symbols_db)
 
-    def _load_language_data(self, i18n_dir, lang):
+    def _load_language_data(self, i18n_dir: str, lang: str) -> None:
         """Загружает данные конкретного языка из JSON файла"""
         base_path = os.path.dirname(os.path.abspath(__file__))
         full_path = os.path.join(base_path, i18n_dir, f"{lang}.json")
@@ -86,7 +88,7 @@ class MathExtractor:
         # Шумовые слова (удаляются препроцессором)
         self.noise_words.update(data.get("noise_words", []))
 
-    def _build_parser(self):
+    def _build_parser(self) -> Lark:
         """Строит парсер Lark с динамической подстановкой словарей"""
         greek = [f'"{k}"' for k, v in self.symbols_db.items() if v.get("type") == "greek"]
         latin = [f'"{k}"' for k, v in self.symbols_db.items() if v.get("type") == "latin"]
@@ -100,7 +102,7 @@ class MathExtractor:
         grammar = template.replace("{GREEK_LIST}", g_str).replace("{LATIN_LIST}", l_str)
         return Lark(grammar, start='start', parser='earley')
 
-    def preprocess_text(self, text):
+    def preprocess_text(self, text: str) -> str:
         """Удаляет стилевой шум (скобка, вот, так и т.д.)"""
         # text = text.lower()
         for noise in sorted(self.noise_words, key=len, reverse=True):
@@ -109,7 +111,7 @@ class MathExtractor:
         text = re.sub(r'\s+', ' ', text).strip()
         return text
 
-    def _is_number_word(self, word):
+    def _is_number_word(self, word: str) -> bool:
         """Проверяет, является ли слово числом (в любом падеже)"""
         word_lower = word.lower()
         # Прямое попадание
@@ -119,9 +121,13 @@ class MathExtractor:
         normalized = self.num_converter._normalize_case(word_lower)
         return normalized in self.num_data
 
-    def is_math_word(self, word):
+    def is_math_word(self, word: str) -> bool:
         """Проверяет, относится ли слово к математическому острову"""
         clean = word.lower()
+
+        # Стоп-слова (проверяем ПЕРВЫМ — важнее bridges)
+        if clean in self.math_stopwords:
+            return True
 
         # Числа (в любом падеже)
         if self._is_number_word(clean):
@@ -131,107 +137,81 @@ class MathExtractor:
         if clean.isdigit():
             return True
 
-        # Из словаря нормализации
-        if clean in self.norm_map:
-            return True
-
-        # Мосты
-        if clean in self.bridges:
+        # VSE
+        if clean in self.vse_aliases:
             return True
 
         # Игнорируемые слова
         if clean in self.ignore_words:
             return True
 
-        # Стоп-слова
-        if clean in self.math_stopwords:
-            return True
-
-        # VSE
-        if clean in self.vse_aliases:
-            return True
-
-        # DE алиасы
+        # DE алиасы (для производных)
         if clean in self.de_aliases:
             return True
 
+        # Из словаря нормализации (но НЕ мосты, кроме DE)
+        if clean in self.norm_map:
+            if clean in self.bridges and clean not in self.de_aliases:
+                return False
+            return True
+
+        # Мосты (кроме DE) не считаются математикой сами по себе
+        if clean in self.bridges and clean not in self.de_aliases:
+            return False
+
         return False
 
-    def normalize_island(self, text):
+    def normalize_island(self, text: str) -> str:
         """Преобразует текст математического острова в последовательность токенов"""
         logger.debug(f"normalize_island INPUT: '{text}'")
-        # logger.debug(f"composite_map keys: {list(self.composite_map.keys())}")
-        # print(f"composite_map keys: {list(self.composite_map.keys())}")
-        # print(f"Before composite: '{text}'")
 
+        # 1. Заменяем составные операторы (многословные фразы)
         for phrase, token in sorted(self.composite_map.items(), key=lambda x: len(x[0]), reverse=True):
-          text = text.replace(phrase, token)
-          # print(f"After replacing '{phrase}' -> '{token}': '{text}'")
+            text = text.replace(phrase, token)
 
-        # print(f"After composite: '{text}'")
-        # Конвертируем числа
+        # 2. Конвертируем числа
         text = self.num_converter.replace(text)
-        # print(f"After num_converter: '{text}'")
 
-        # Убираем стилевой шум
+        # 3. Убираем стилевой шум
         text = self.preprocess_text(text)
-        # print(f"After preprocess: '{text}'")
 
-        # Разбиваем на слова
+        # 4. Разбиваем на токены
         tokens = text.split()
         logger.debug(f"Tokens: {tokens}")
-        # print(f"Tokens: {tokens}")
 
-        res = []
+        res: List[str] = []
         i = 0
         while i < len(tokens):
-            # Пробуем найти составной оператор (самый длинный)
-            matched = False
-            for phrase, token in sorted(self.composite_map.items(), key=lambda x: len(x[0].split()), reverse=True):
-                phrase_words = phrase.split()
-                if i + len(phrase_words) <= len(tokens):
-                    if [tokens[i + j] for j in range(len(phrase_words))] == phrase_words:
-                        res.append(token)
-                        i += len(phrase_words)
-                        matched = True
-                        break
-
-            if matched:
-                continue
-
             word = tokens[i]
 
-            # Проверяем VSE
+            # VSE
             if word in self.vse_aliases:
                 res.append("VSE")
                 i += 1
                 continue
 
-            # Обработка DE + переменная (де икс, де игрек, де зет)
+            # DE + переменная (де икс, де игрек)
             if word in self.de_aliases and i + 1 < len(tokens):
                 next_word = tokens[i + 1]
                 if next_word in self.norm_map:
-                  var = self.norm_map[next_word]  # это будет "x", "y", "alpha" и т.д.
-                  res.append("DE")
-                  res.append(var)  # x, а не DX
-                  i += 2
-                  continue
+                    res.append("DE")
+                    res.append(self.norm_map[next_word])
+                    i += 2
+                    continue
 
-            # Проверяем игнорируемые слова — пропускаем
+            # Игнорируемые слова пропускаем
             if word in self.ignore_words:
                 i += 1
                 continue
 
-            # Проверяем нормализацию
+            # Нормализация слова
             if word in self.norm_map:
                 res.append(self.norm_map[word])
             elif word.isdigit():
                 res.append(word)
             elif word in self.num_data:
-                # Число словом -> цифра
                 res.append(self.num_data[word])
             else:
-                # Неизвестное слово — оставляем как есть
                 res.append(word)
 
             i += 1
@@ -240,7 +220,7 @@ class MathExtractor:
         logger.debug(f"normalize_island OUTPUT: '{result}'")
         return result
 
-    def parse_island(self, text):
+    def parse_island(self, text: str) -> Union[str, List[str]]:
         """Парсит нормализованный остров в LaTeX"""
         norm = self.normalize_island(text)
         logger.debug(f"Normalized: {norm}")
@@ -257,7 +237,7 @@ class MathExtractor:
                 else:
                     res = "".join([str(x) for x in res])
             return res
-        except Exception as exc:
+        except (lark.exceptions.ParseError, AttributeError, IndexError) as exc:
             logger.debug(f"Failed without VSE: {exc}")
             pass
 
@@ -273,11 +253,11 @@ class MathExtractor:
                 else:
                     res = "".join([str(x) for x in res])
             return res
-        except Exception as exc:
+        except (lark.exceptions.ParseError, AttributeError, IndexError) as exc:
             logger.error(f"Parse error: {exc}")
             return "Error"
 
-    def transform_text(self, text):
+    def transform_text(self, text: str) -> str:
         """Основной метод: сегментирует текст, парсит математические острова"""
         logger.debug(f"transform_text INPUT: '{text}'")
 

@@ -1,11 +1,11 @@
-from lark import Transformer, Token
+from typing import Any, List, Union
+from lark import Transformer, Token, Tree
 
 class MathToLatex(Transformer):
-    def __init__(self, symbols_db):
-        self.symbols_db = symbols_db
+    def __init__(self, symbols_db: dict) -> None:
+        self.symbols_db: dict = symbols_db
 
-    #
-    def _clean(self, item):
+    def _clean(self, item: Any) -> str:
       """Рекурсивно достает чистую строку из любых вложенных списков Lark."""
       if isinstance(item, list):
         if len(item) == 1:
@@ -23,8 +23,7 @@ class MathToLatex(Transformer):
         return ""
       return str(item)
 
-    #
-    def integral_full(self, items):
+    def integral_full(self, items: List[Any]) -> str:
       args = []
       var = "x"
 
@@ -64,8 +63,7 @@ class MathToLatex(Transformer):
 
       return "Error: invalid integral"
 
-    #
-    def integral(self, items):
+    def integral(self, items: List[Any]) -> str:
       """INT [OT] arith_expr [PO] DE var"""
       args = []
       var = "x"
@@ -87,7 +85,7 @@ class MathToLatex(Transformer):
       return f"\\int {body}\\,d{var}"
 
 
-    def complex_op(self, items):
+    def complex_op(self, items: List[Any]) -> str:
         left = self._clean(items[0])
         op = self._clean(items[2])
         right = self._clean(items[3])
@@ -116,47 +114,48 @@ class MathToLatex(Transformer):
         }
         return f"{left}{op_map.get(op, op)}{right}"
 
-    def simple_end(self, items):
+    def simple_end(self, items: List[Any]) -> str:
         return self._clean(items[0])
 
-    def eq(self, items): return f"{self._clean(items[0])} = {self._clean(items[2])}"
-    def neq(self, items): return f"{self._clean(items[0])} \\neq {self._clean(items[2])}"
-    def lt(self, items): return f"{self._clean(items[0])} < {self._clean(items[2])}"
-    def le(self, items): return f"{self._clean(items[0])} \\le {self._clean(items[2])}"
-    def gt(self, items): return f"{self._clean(items[0])} > {self._clean(items[2])}"
+    def eq(self, items: List[Any]) -> str: return f"{self._clean(items[0])} = {self._clean(items[2])}"
+    def neq(self, items: List[Any]) -> str: return f"{self._clean(items[0])} \\neq {self._clean(items[2])}"
+    def lt(self, items: List[Any]) -> str: return f"{self._clean(items[0])} < {self._clean(items[2])}"
+    def le(self, items: List[Any]) -> str: return f"{self._clean(items[0])} \\le {self._clean(items[2])}"
+    def gt(self, items: List[Any]) -> str: return f"{self._clean(items[0])} > {self._clean(items[2])}"
 
-    def pm(self, items): return f"{self._clean(items[0])} \\pm {self._clean(items[2])}"
-    def mp(self, items): return f"{self._clean(items[0])} \\mp {self._clean(items[2])}"
+    def pm(self, items: List[Any]) -> str: return f"{self._clean(items[0])} \\pm {self._clean(items[2])}"
+    def mp(self, items: List[Any]) -> str: return f"{self._clean(items[0])} \\mp {self._clean(items[2])}"
 
-    def ge(self, items):
+    def ge(self, items: List[Any]) -> str:
      return f"{self._clean(items[0])} \\ge {self._clean(items[2])}"
 
-    def add(self, items): return f"{self._clean(items[0])} + {self._clean(items[2])}"
-    def sub(self, items): return f"{self._clean(items[0])} - {self._clean(items[2])}"
-    def implicit_mul(self, items): return f"{self._clean(items[0])}{self._clean(items[1])}"
-    def times_mul(self, items): return f"{self._clean(items[0])} \\times {self._clean(items[2])}"
-    def cdot_mul(self, items): return f"{self._clean(items[0])} \\cdot {self._clean(items[2])}"
+    def add(self, items: List[Any]) -> str: return f"{self._clean(items[0])} + {self._clean(items[2])}"
+    def sub(self, items: List[Any]) -> str: return f"{self._clean(items[0])} - {self._clean(items[2])}"
+    def implicit_mul(self, items: List[Any]) -> str: return f"{self._clean(items[0])}{self._clean(items[1])}"
+    def times_mul(self, items: List[Any]) -> str: return f"{self._clean(items[0])} \\times {self._clean(items[2])}"
+    def cdot_mul(self, items: List[Any]) -> str: return f"{self._clean(items[0])} \\cdot {self._clean(items[2])}"
 
-    def simple_div(self, items): return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[2])}}}"
+    def simple_div(self, items: List[Any]) -> str: return f"\\frac{{{self._clean(items[0])}}}{{{self._clean(items[2])}}}"
 
-    def add_unary(self, items): return f" + {self._clean(items[1])}"
-    def sub_unary(self, items): return f" - {self._clean(items[1])}"
+    def add_unary(self, items: List[Any]) -> str: return f" + {self._clean(items[1])}"
+    def sub_unary(self, items: List[Any]) -> str: return f" - {self._clean(items[1])}"
 
-    def sqrt(self, items): return f"\\sqrt{{{self._clean(items[-1])}}}"
-    def sin(self, items): return f"\\sin({self._clean(items[-1])})"
-    def cos(self, items): return f"\\cos({self._clean(items[-1])})"
+    def sqrt(self, items: List[Any]) -> str: return f"\\sqrt{{{self._clean(items[-1])}}}"
+    def sin(self, items: List[Any]) -> str: return f"\\sin({self._clean(items[-1])})"
+    def cos(self, items: List[Any]) -> str: return f"\\cos({self._clean(items[-1])})"
 
-    def pow_2(self, items): return f"{self._clean(items[0])}^2"
-    def pow_3(self, items): return f"{self._clean(items[0])}^3"
+    def pow_2(self, items: List[Any]) -> str: return f"{self._clean(items[0])}^2"
+    def pow_3(self, items: List[Any]) -> str: return f"{self._clean(items[0])}^3"
+    def pow(self, items: List[Any]) -> str: return f"{self._clean(items[0])}^{self._clean(items[2])}"
 
-    def derivative(self, items):
+    def derivative(self, items: List[Any]) -> str:
       """DE var PO DE var"""
       # items: [DE, y, PO, DE, x]
       numerator = self._clean(items[1])
       denominator = self._clean(items[4])
       return f"\\frac{{d{numerator}}}{{d{denominator}}}"
 
-    def simple_var(self, items):
+    def simple_var(self, items: List[Any]) -> str:
         val = self._clean(items)
         info = self.symbols_db.get(val)
         if info and info.get("type") == "greek":
@@ -164,25 +163,25 @@ class MathToLatex(Transformer):
         return val
 
 
-    def laplacian(self, items):
+    def laplacian(self, items: List[Any]) -> str:
       return f"\\Delta {self._clean(items[0])}"
 
-    def var(self, items): return self._clean(items)
-    def num(self, items): return self._clean(items)
-    def dx(self, _): return "dx"
-    def dy(self, _): return "dy"
-    def dz(self, _): return "dz"
+    def var(self, items: List[Any]) -> str: return self._clean(items)
+    def num(self, items: List[Any]) -> str: return self._clean(items)
+    def dx(self, _) -> str: return "dx"
+    def dy(self, _) -> str: return "dy"
+    def dz(self, _) -> str: return "dz"
 
     #
-    def tan(self, items): return f"\\tan({self._clean(items[-1])})"
-    def cot(self, items): return f"\\cot({self._clean(items[-1])})"
-    def arcsin(self, items): return f"\\arcsin({self._clean(items[-1])})"
-    def arccos(self, items): return f"\\arccos({self._clean(items[-1])})"
-    def arctan(self, items): return f"\\arctan({self._clean(items[-1])})"
-    def arccot(self, items): return f"\\arccot({self._clean(items[-1])})"
-    def sinh(self, items): return f"\\sinh({self._clean(items[-1])})"
-    def cosh(self, items): return f"\\cosh({self._clean(items[-1])})"
-    def root_n(self, items): return f"\\sqrt[{self._clean(items[1])}]{{{self._clean(items[-1])}}}"
+    def tan(self, items: List[Any]) -> str: return f"\\tan({self._clean(items[-1])})"
+    def cot(self, items: List[Any]) -> str: return f"\\cot({self._clean(items[-1])})"
+    def arcsin(self, items: List[Any]) -> str: return f"\\arcsin({self._clean(items[-1])})"
+    def arccos(self, items: List[Any]) -> str: return f"\\arccos({self._clean(items[-1])})"
+    def arctan(self, items: List[Any]) -> str: return f"\\arctan({self._clean(items[-1])})"
+    def arccot(self, items: List[Any]) -> str: return f"\\arccot({self._clean(items[-1])})"
+    def sinh(self, items: List[Any]) -> str: return f"\\sinh({self._clean(items[-1])})"
+    def cosh(self, items: List[Any]) -> str: return f"\\cosh({self._clean(items[-1])})"
+    def root_n(self, items: List[Any]) -> str: return f"\\sqrt[{self._clean(items[1])}]{{{self._clean(items[-1])}}}"
 
     def __default__(self, data, children, meta):
       return children if len(children) == 1 else children

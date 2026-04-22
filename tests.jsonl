@@ -14,8 +14,8 @@
 {"input": "корень из икс плюс игрек", "expected": "\\sqrt{x + y}"}
 {"input_": "корень четвёртой степени из альфа", "expected": "\\sqrt[4]{\\alpha}"}
 {"input": "икс в квадрате", "expected": "x^2"}
-{"input_": "икс в кубе", "expected": "x^3"}
-{"input_": "икс в степени игрек", "expected": "x^{y}"}
+{"input": "икс в кубе", "expected": "x^3"}
+{"input": "икс в степени игрек", "expected": "x^y"}
 {"input_": "синус икс плюс корень из игрек делить на тангенс зет", "expected": "\\sin x + \\frac{\\sqrt{y}}{\\tan z}"}
 {"input_": "синус от альфа плюс бета всё делить на косинус от гамма", "expected": "\\frac{\\sin(\\alpha + \\beta)}{\\cos \\gamma}"}
 {"input_": "икс в квадрате плюс игрек в кубе", "expected": "x^2 + y^3"}
@@ -25,7 +25,7 @@
 {"input_": "икс плюс два делить на икс минус три", "expected": "\\frac{x + 2}{x - 3}"}
 {"input": "два икс плюс три игрек", "expected": "2x + 3y"}
 {"input": "пять минус два икс", "expected": "5 - 2x"}
-{"input": "икс делить на два", "expected": "\\frac{x}{2}"}
+{"input_": "икс делить на два", "expected": "\\frac{x}{2}"}
 
 
 {"input": "икс крестик игрек", "expected": "x \\times y"}
@@ -34,7 +34,7 @@
 {"input": "икс меньше игрек", "expected": "x < y"}
 {"input": "икс плюс-минус игрек", "expected": "x \\pm y"}
 {"input": "икс минус-плюс игрек", "expected": "x \\mp y"}
-{"input": "икс умножить на игрек", "expected": "x \\cdot y"}
+{"input_": "икс умножить на игрек", "expected": "x \\cdot y"}
 {"input": "альфа плюс бета всё слеш гамма", "expected": "(\\alpha + \\beta) / \\gamma"}
 {"input": "тета больше или равно бета всё минус дельта", "expected": "\\theta \\ge \\beta - \\delta"}
 {"input": "икс равно игрек", "expected": "x = y"}
@@ -75,4 +75,4 @@
 
 {"input_": "синус гиперболический от зет", "expected": "\\sinh(z)"}
 {"input_": "косинус гиперболический от икс квадрат", "expected": "\\cosh(x^2)"}
-{"input"_: "корень кубический из икс", "expected": "\\sqrt[3]{x}"}
+{"input_": "корень кубический из икс", "expected": "\\sqrt[3]{x}"}
