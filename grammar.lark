@@ -1,0 +1,64 @@
+start: expr
+
+expr: comparison
+comparison: additive (EQ additive | NEQ additive | LT additive | GT additive | LE additive | GE additive | SIMILAR additive | APPROX additive | PROP additive | EQUIV additive)?
+
+EQ: "="
+NEQ: "!="
+LT: "<"
+GT: ">"
+LE: "<="
+GE: ">="
+SIMILAR: "similar"
+APPROX: "approx"
+PROP: "prop"
+EQUIV: "equiv"
+
+additive: additive PLUS multiplicative | additive MINUS multiplicative | multiplicative
+PLUS: "+"
+MINUS: "-"
+
+multiplicative: multiplicative MUL power | multiplicative DIV power | power
+MUL: "*"
+DIV: "/"
+
+power: primary EXP primary | primary
+EXP: "^"
+
+primary: NUMBER | VARIABLE | GREEK | LPAR expr RPAR | func_call | special | UNARY primary
+UNARY: "-" | "+"
+
+func_call: sin_call | cos_call | tan_call | cot_call | arcsin_call
+         | arccos_call | arctan_call | sinh_call | cosh_call | tanh_call
+         | sqrt_call | log_call | ln_call
+
+sin_call: "sin" LPAR expr RPAR
+cos_call: "cos" LPAR expr RPAR
+tan_call: "tan" LPAR expr RPAR
+cot_call: "cot" LPAR expr RPAR
+arcsin_call: "arcsin" LPAR expr RPAR
+arccos_call: "arccos" LPAR expr RPAR
+arctan_call: "arctan" LPAR expr RPAR
+sinh_call: "sinh" LPAR expr RPAR
+cosh_call: "cosh" LPAR expr RPAR
+tanh_call: "tanh" LPAR expr RPAR
+sqrt_call: "sqrt" LPAR expr RPAR
+log_call: "log" LPAR expr RPAR
+ln_call: "ln" LPAR expr RPAR
+
+special: integral | sum_expr | product_expr | diff_expr
+
+integral: "integral" ("from" expr "to" expr)? ("of")? expr ("d" VARIABLE)?
+sum_expr: "sum" ("from" expr "to" expr)? ("of")? expr
+product_expr: "product" ("from" expr "to" expr)? ("of")? expr
+diff_expr: "d" VARIABLE
+
+LPAR: "("
+RPAR: ")"
+
+VARIABLE: /[a-z]+/i
+NUMBER: /\d+(\.\d+)?/
+GREEK: /[α-ωΑ-Ω]/
+
+%import common.WS
+%ignore WS
