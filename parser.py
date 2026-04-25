@@ -45,21 +45,25 @@ class LaTeXTransformer(Transformer):
     def LPAR(self, _): return '('
     def RPAR(self, _): return ')'
 
-    def additive(self, c):
-        if len(c) == 1: return c[0]
-        left, op, right = c[0], c[1], c[2]
-        op_str = str(op)
-        if op_str == 'PLUS': return f"{left} + {right}"
-        if op_str == 'MINUS': return f"{left} - {right}"
-        return left
-
     def multiplicative(self, c):
         if len(c) == 1: return c[0]
+        # c = [multiplicative, MUL/DIV, power, ALL_GROUP?]
         left, op, right = c[0], c[1], c[2]
         op_str = str(op)
-        if op_str == 'MUL': return f"{left} \\cdot {right}"
-        if op_str == 'DIV': return f"{left} / {right}"
-        return left
+        if op_str == 'MUL': result = f"({left} \cdot {right})"
+        elif op_str == 'DIV': result = f"({left} / {right})"
+        else: result = f"{left}"
+        return result
+
+    def additive(self, c):
+        if len(c) == 1: return c[0]
+        # c = [additive, PLUS/MINUS, multiplicative, ALL_GROUP?]
+        left, op, right = c[0], c[1], c[2]
+        op_str = str(op)
+        if op_str == 'PLUS': result = f"({left} + {right})"
+        elif op_str == 'MINUS': result = f"({left} - {right})"
+        else: result = f"{left}"
+        return result
 
     def power(self, c):
         if len(c) == 1: return c[0]
@@ -104,6 +108,7 @@ class LaTeXTransformer(Transformer):
 
     def LPAR(self, _): return '('
     def RPAR(self, _): return ')'
+    def ALL_GROUP(self, _): return ')'  # "all" → закрывающая скобка
 
     def _handle_tree(self, tree):
         data = getattr(tree, 'data', str(tree))
@@ -227,12 +232,77 @@ class Parser:
         """Добавляет скобки к функциям, если их нет."""
         r = text
         for f in sorted(self.funcs, key=len, reverse=True):
-            pattern = rf'\b{f}\s+([^\s(]+)'
+            # Ищем функцию, за которой следует пробел и аргумент (не скобка)
+            # Аргумент может быть переменной, числом или греческой буквой
+            pattern = rf'\b{f}\s+([a-zα-ωA-ZΩ0-9]+)'
             r = re.sub(pattern, rf'{f}(\1)', r, flags=re.IGNORECASE)
         return r
 
     def parse(self, text: str) -> str:
-        return str(self.parser.parse(self._add_parens(text))).strip()
+        # Проверяем, есть ли "all" в тексте
+        if ' all ' in text:
+            # Используем post-processing для "all"
+            return self._balance_all(text)
+        else:
+            # Обычный парсинг
+            parsed = str(self.parser.parse(self._add_parens(text))).strip()
+            return parsed
+
+    def _balance_all(self, original: str) -> str:
+        """
+        Добавляет скобки для группировки "all".
+        
+        Правила:
+        - Группируем последовательность: операнд [оператор операнд]*
+        - Останавливаемся перед именем функции без оператора
+        """
+        import re
+        
+        funcs = {'sin', 'cos', 'tan', 'cot', 'arcsin', 'arccos', 'arctan',
+                 'sinh', 'cosh', 'tanh', 'sqrt', 'log', 'ln', 'integral', 'sum', 'product'}
+        
+        result = original
+        
+        while ' all ' in result:
+            idx = result.find(' all ')
+            
+            # Идём влево
+            start = idx
+            in_group = False
+            
+            while start > 0:
+                ch = result[start-1]
+                
+                if ch in ' 	':
+                    start -= 1
+                elif ch in '+-*/':
+                    start -= 1
+                    in_group = True
+                elif ch.isalnum() or ch in 'α-ωΑ-Ω':
+                    # Читаем имя/число
+                    end = start
+                    while start > 0 and (result[start-1].isalnum() or result[start-1] in 'α-ωΑ-Ω'):
+                        start -= 1
+                    word = result[start:end]
+                    
+                    # Если это функция и нет оператора перед ней — стоп
+                    if word.lower() in funcs and not in_group:
+                        start = end  # Возвращаемся назад
+                        break
+                    
+                    in_group = True
+                else:
+                    break
+            
+            # Добавляем скобки
+            if in_group:
+                result = result[:start] + '(' + result[start:idx].strip() + ')' + result[idx+5:]
+            else:
+                result = result[:idx] + result[idx+5:]
+        
+        # Парсим результат без "all"
+        result = re.sub(r'\ball\b', '', result).strip()
+        return str(self.parser.parse(self._add_parens(result))).strip()
 
 
 def main():

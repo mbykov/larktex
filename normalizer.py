@@ -3,6 +3,9 @@
 Normalizer — преобразует русский математический текст в латиницу.
 
 Читает только i18n/ru.json.
+НЕ добавляет скобки! Только заменяет термины:
+- "всё"/"все" → "all"
+- "открыть скобку" → "(", "закрыть скобку" → ")"
 """
 
 import json
@@ -52,13 +55,14 @@ class Normalizer:
         
         Порядок:
         1. Фразы со "в" (в квадрате, в кубе) — до удаления "в"
-        2. "делить на" → "/" (до удаления предлога "на")
-        3. "де" → "d" (для дифференциала)
-        4. Удалить предлоги (от, из, на, до) — "в" пока не удаляем
-        5. Заменить скобки и "всё"
-        6. Заменить "в" как переменную → "v" (если осталось)
-        7. Длинные синонимы первыми
-        8. Очистить пробелы
+        2. "всё" / "все" → "all"
+        3. "делить на" → "/"
+        4. "де" → "d" (для дифференциала)
+        5. Удалить предлоги (от, из, на, до)
+        6. Обработка скобок (только явные команды)
+        7. "в" как переменная → "v"
+        8. Длинные синонимы первыми
+        9. Очистить пробелы
         """
         result = text
         
@@ -72,8 +76,9 @@ class Normalizer:
                     )
                     result = pattern.sub(f'^{power}', result)
         
-        # 2. "всё делить на" → ") / " (закрыть скобку перед делением)
-        result = re.sub(r'\bвсё делить на\b', ') / ', result, flags=re.IGNORECASE)
+        # 2. "всё" / "все" → "all" (просто замена слова, БЕЗ скобок)
+        result = re.sub(r'\bвсё\b', ' all ', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bвсе\b', ' all ', result, flags=re.IGNORECASE)
         
         # 3. "делить на" → "/"
         result = re.sub(r'\bделить на\b', ' / ', result, flags=re.IGNORECASE)
@@ -85,17 +90,18 @@ class Normalizer:
         for pred in ['от', 'из', 'на', 'до']:
             result = re.sub(r'\b' + pred + r'\b', ' ', result, flags=re.IGNORECASE)
         
-        # 6. Обработка скобок
-        result = re.sub(r'\bоткрыть скобку\b', '(', result, flags=re.IGNORECASE)
-        result = re.sub(r'\bзакрыть скобку\b', ')', result, flags=re.IGNORECASE)
-        result = re.sub(r'\bоткрыть\b', '(', result, flags=re.IGNORECASE)
-        result = re.sub(r'\bзакрыть\b', ')', result, flags=re.IGNORECASE)
+        # 6. Обработка явных скобок (только если пользователь сказал "скобка")
+        result = re.sub(r'\bоткрыть скобку\b', ' ( ', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bзакрыть скобку\b', ' ) ', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bоткрывающая скобка\b', ' ( ', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bзакрывающая скобка\b', ' ) ', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bоткрыть\b', ' ( ', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bзакрыть\b', ' ) ', result, flags=re.IGNORECASE)
         
-        # 7. "в" как переменная → "v" (если осталось после обработки предлогов)
-        # "в" как предлог обычно после слова, переменная "в" — сама по себе или после оператора
+        # 7. "в" как переменная → "v"
         result = re.sub(r'\bв\b', ' v ', result, flags=re.IGNORECASE)
         
-        # 8. Длинный синонимы первыми
+        # 8. Длинные синонимы первыми
         sorted_synonyms = sorted(self._reverse_map.keys(), key=len, reverse=True)
         
         for synonym in sorted_synonyms:
@@ -106,7 +112,7 @@ class Normalizer:
                 continue
             if 'в ' in synonym:
                 continue
-            if synonym in ['от', 'из', 'на', 'до', 'в', 'делить на', 'де']:
+            if synonym in ['от', 'из', 'на', 'до', 'в', 'делить на', 'де', 'всё', 'все', 'all']:
                 continue
             if len(synonym) == 1 and synonym.isascii() and synonym.isalpha():
                 continue
@@ -117,21 +123,11 @@ class Normalizer:
             )
             result = pattern.sub(target, result)
         
-        # 9. Балансировка скобок: если больше ")" чем "(", добавляем "(" в начало
-        open_count = result.count('(')
-        close_count = result.count(')')
-        if close_count > open_count:
-            result = '(' * (close_count - open_count) + result
-        
-        # 10. Очистка пробелов
-        result = re.sub(r'\s+\^', '^', result)
-        result = re.sub(r'\(\s+', '(', result)
-        result = re.sub(r'\s+\)', ')', result)
-        result = re.sub(r'\s+/', '/', result)
-        result = re.sub(r'/\s+', '/', result)
-        result = re.sub(r'\(\s*/', '(/', result)  # Без пробела ( перед /
-        result = re.sub(r'\(\s*([+\-*/])', r'(\1', result)  # Без пробела ( перед оператором
-        result = re.sub(r'\s+', ' ', result).strip()
+        # 9. Очистка пробелов (сохраняем пробелы вокруг операторов)
+        result = re.sub(r'\s+\^', '^', result)  # Пробел перед ^ удаляем
+        result = re.sub(r'\(\s+', '(', result)  # Пробел после ( удаляем
+        result = re.sub(r'\s+\)', ')', result)  # Пробел перед ) удаляем
+        result = re.sub(r'\s+', ' ', result).strip()  # Остальные пробелы нормализуем
         
         return result
 
@@ -187,6 +183,8 @@ def main():
         "дельта равно нулю",
         "икс в квадрате",
         "а заглавная плюс б",
+        "а плюс б всё делить на в",
+        "открыть скобку а плюс б закрыть скобку",
     ]
     
     for test in test_cases:

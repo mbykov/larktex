@@ -50,7 +50,12 @@ class LarktexEngine:
         """Преобразует русский текст в LaTeX."""
         normalized = self.normalizer.normalize_text(text)
         try:
-            latex = self.parser.parse(normalized)
+            parsed = self.parser.parse(normalized)
+            # Применяем design: проверка скобок + \sin, \cos и т.д.
+            from design import design
+            latex, error = design(parsed)
+            if error:
+                return f"# Design error: {error}\n{parsed}"
             return latex
         except Exception as e:
             return f"# Parse error: {e}\n{normalized}"
@@ -111,7 +116,11 @@ def run_server(host: str = "0.0.0.0", port: int = 8000):
         """Преобразует математический текст в LaTeX."""
         normalized = engine.normalizer.normalize_text(req.text)
         try:
-            latex = engine.parser.parse(normalized)
+            parsed = engine.parser.parse(normalized)
+            from design import design
+            latex, error = design(parsed)
+            if error:
+                latex = f"# Error: {error}\n{parsed}"
         except Exception as e:
             latex = f"# Error: {e}\n{normalized}"
         return {"normalized": normalized, "latex": latex}

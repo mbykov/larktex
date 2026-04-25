@@ -3,45 +3,16 @@
 
 import json
 import pytest
+import sys
 from pathlib import Path
 
-import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from normalizer import Normalizer
 
 
-class TestNormalizerFromJSONL:
-    """Тесты на данных из expected_outputs.jsonl."""
-
-    @pytest.fixture
-    def normalizer(self):
-        return Normalizer(i18n_dir=str(Path(__file__).parent.parent / "i18n"))
-
-    @pytest.fixture
-    def test_cases(self):
-        """Загрузить тестовые данные из expected_outputs.jsonl."""
-        jsonl_file = Path(__file__).parent / "expected_outputs.jsonl"
-        tests = []
-        with open(jsonl_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.strip():
-                    tests.append(json.loads(line))
-        return tests
-
-    @pytest.mark.parametrize("test_data", [
-        pytest.param(tc, id=f"id_{tc['id']}")
-        for tc in []  # Заполняется динамически
-    ])
-    def test_from_jsonl(self, normalizer, test_data):
-        """Проверка каждого примера из expected_outputs.jsonl."""
-        actual = normalizer.process(test_data['input'])
-        expected = test_data['expected']
-        assert actual == expected, f"ID {test_data['id']}: got {actual!r}, expected {expected!r}"
-
-
 def load_test_cases():
-    """Загрузить тесты для параметризации."""
+    """Загрузить тесты из expected_outputs.jsonl."""
     jsonl_file = Path(__file__).parent / "expected_outputs.jsonl"
     tests = []
     with open(jsonl_file, 'r', encoding='utf-8') as f:
@@ -51,17 +22,33 @@ def load_test_cases():
     return tests
 
 
-# Динамическая генерация тестов
-for i, tc in enumerate(load_test_cases()):
-    def make_test(data, idx):
-        def test_method(self, normalizer):
-            actual = normalizer.process(data['input'])
-            expected = data['expected']
-            assert actual == expected, f"Test {idx}: got {actual!r}, expected {expected!r}"
-        return test_method
-    
-    test_name = f"test_from_jsonl_{i}"
-    setattr(TestNormalizerFromJSONL, test_name, make_test(tc, i))
+class TestNormalizer:
+    """Тесты нормализатора."""
+
+    @pytest.fixture
+    def normalizer(self):
+        return Normalizer(i18n_dir=str(Path(__file__).parent.parent / "i18n"))
+
+    @pytest.fixture(autouse=True)
+    def setup(self, request):
+        """Настройка для отображения точек."""
+        if request.node.name.startswith('test_case_'):
+            sys.stdout.write('.')
+            sys.stdout.flush()
+        yield
+
+    def test_all_cases(self, normalizer):
+        """Единый тест для всех случаев из JSONL."""
+        test_cases = load_test_cases()
+        for i, tc in enumerate(test_cases):
+            actual = normalizer.process(tc['input'])
+            expected = tc['expected']
+            assert actual == expected, (
+                f"\n\nTest {i} (ID {tc.get('id', 'N/A')}):\n"
+                f"  Input:    {tc['input']!r}\n"
+                f"  Expected: {expected!r}\n"
+                f"  Actual:   {actual!r}"
+            )
 
 
 class TestBasicNormalization:
