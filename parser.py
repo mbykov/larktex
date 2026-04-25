@@ -19,16 +19,31 @@ class LaTeXTransformer(Transformer):
     def start(self, c): return c[0] if c else ""
     def expr(self, c): return c[0] if c else ""
 
-    def comparison(self, c):
-        if len(c) == 1: return c[0]
-        left, op_token, right = c[0], c[1], c[2]
-        op_map = {
-            'EQ': '=', 'NEQ': '\\neq', 'LT': '<', 'GT': '>',
-            'LE': '\\leq', 'GE': '\\geq', 'SIMILAR': '\\sim',
-            'APPROX': '\\approx', 'PROP': '\\propto', 'EQUIV': '\\equiv',
-        }
-        op = op_map.get(str(op_token), str(op_token))
-        return f"{left} {op} {right}"
+    def primary(self, c):
+        # LPAR expr RPAR -> (expr)
+        if len(c) == 3 and str(c[0]) in ('LPAR', '('):
+            # c[1] уже преобразован Transformer
+            return f"({c[1]})"
+        if len(c) == 1:
+            val = c[0]
+            if isinstance(val, str): return val
+            if hasattr(val, 'data'):
+                if val.data == 'func_call' and len(val.children) == 1:
+                    inner = val.children[0]
+                    if hasattr(inner, 'data') and inner.data.endswith('_call'):
+                        return self._handle_tree(inner)
+                return self._handle_tree(val)
+            return val
+        # Унарный плюс/минус
+        if len(c) == 2 and str(c[0]) in ('MINUS', '-', 'PLUS', '+'):
+            op_token, val = c[0], c[1]
+            if str(op_token) in ('MINUS', '-'):
+                return f"-{val}"
+            return f"+{val}"
+        return c[0]
+
+    def LPAR(self, _): return '('
+    def RPAR(self, _): return ')'
 
     def additive(self, c):
         if len(c) == 1: return c[0]
@@ -52,9 +67,23 @@ class LaTeXTransformer(Transformer):
         base = c[0]
         exp = c[2]  # пропускаем EXP токен
         es = str(exp)
-        return f"{base}^{es}" if len(es) == 1 else f"{base}^{{{es}}}"
+        return f"{base}^{es}" if len(es) == 1 else f"{base}^{{{es}}}"  
+
+    def comparison(self, c):
+        if len(c) == 1: return c[0]
+        left, op_token, right = c[0], c[1], c[2]
+        op_map = {
+            'EQ': '=', 'NEQ': '\\neq', 'LT': '<', 'GT': '>',
+            'LE': '\\leq', 'GE': '\\geq', 'SIMILAR': '\\sim',
+            'APPROX': '\\approx', 'PROP': '\\propto', 'EQUIV': '\\equiv',
+        }
+        op = op_map.get(str(op_token), str(op_token))
+        return f"{left} {op} {right}"
 
     def primary(self, c):
+        # LPAR expr RPAR -> (expr)
+        if len(c) == 3 and str(c[0]) in ('LPAR', '('):
+            return f"({c[1]})"
         if len(c) == 1:
             val = c[0]
             if isinstance(val, str): return val
@@ -65,11 +94,16 @@ class LaTeXTransformer(Transformer):
                         return self._handle_tree(inner)
                 return self._handle_tree(val)
             return val
-        # Унарный плюс/минус: c = [UNARY, primary]
-        op_token, val = c[0], c[1]
-        if str(op_token) == 'MINUS' or str(op_token) == '-':
-            return f"-{val}"
-        return val
+        # Унарный плюс/минус
+        if len(c) == 2 and str(c[0]) in ('MINUS', '-', 'PLUS', '+'):
+            op_token, val = c[0], c[1]
+            if str(op_token) in ('MINUS', '-'):
+                return f"-{val}"
+            return f"+{val}"
+        return c[0]
+
+    def LPAR(self, _): return '('
+    def RPAR(self, _): return ')'
 
     def _handle_tree(self, tree):
         data = getattr(tree, 'data', str(tree))
@@ -78,6 +112,9 @@ class LaTeXTransformer(Transformer):
             arg = tree.children[1] if len(tree.children) >= 2 else (tree.children[0] if tree.children else "")
             if fname == 'sqrt': return f"\\sqrt{{{arg}}}"
             return f"\\{fname}({arg})"
+        elif isinstance(data, str) and data == 'all_expr':
+            inner = tree.children[0] if tree.children else ""
+            return f"({inner})"
         elif isinstance(data, str) and data == 'integral':
             return self._integral(tree.children)
         elif isinstance(data, str) and data == 'sum_expr':
@@ -85,20 +122,52 @@ class LaTeXTransformer(Transformer):
         elif isinstance(data, str) and data == 'product_expr':
             return self._product(tree.children)
         elif isinstance(data, str) and data == 'diff_expr':
-            return f"d{tree.children[0]}" if tree.children else "d"
+            return f"d {tree.children[0]}" if tree.children else "d"
+        elif isinstance(data, str):
+            # Прямой токен (sin, cos, NUMBER и т.д.)
+            return data
         return str(tree)
 
     def _integral(self, c):
-        expr = lower = upper = diff = ""; i = 1
+        expr = lower = upper = diff = ""
+        i = 0
         while i < len(c):
             s = str(c[i])
-            if s == 'from': lower = c[i+1]; i += 2
-            elif s == 'to': upper = c[i+1]; i += 2
-            elif s == 'of': i += 1
-            elif s == 'd': diff = f"d{c[i+1]}"; i += 2
-            else: expr = c[i]; i += 1
+            if s == 'from':
+                lower = self._child_to_str(c[i+1])
+                i += 2
+            elif s == 'to':
+                upper = self._child_to_str(c[i+1])
+                i += 2
+            elif s == 'of':
+                i += 1
+            elif s == 'd':
+                diff = f"d {self._child_to_str(c[i+1])}"
+                i += 2
+            elif str(c[i]) in ('INTEGRAL',):
+                i += 1
+            else:
+                expr = self._child_to_str(c[i])
+                i += 1
         res = "\\int" + (f"_{lower}^{upper}" if lower or upper else "") + f" {expr}"
         return f"{res} \\, {diff}" if diff else res
+
+    def integral_body(self, c):
+        """Обрабатывает integral_body: expr ('d' VARIABLE)?"""
+        if len(c) == 1:
+            return c[0]
+        # c = [expr, D, VARIABLE]
+        expr = self._child_to_str(c[0])
+        var = self._child_to_str(c[2]) if len(c) > 2 else self._child_to_str(c[1])
+        return f"{expr} \\, d {var}"
+
+    def _child_to_str(self, child):
+        """Преобразует child (строка или дерево) в LaTeX строку."""
+        if isinstance(child, str):
+            return child
+        if hasattr(child, 'data'):
+            return self._handle_tree(child)
+        return str(child)
 
     def _sum(self, c):
         expr = lower = upper = ""; i = 1
@@ -126,8 +195,6 @@ class LaTeXTransformer(Transformer):
     def NUMBER(self, n): return str(n)
     def VARIABLE(self, v): return str(v)
     def GREEK(self, g): return str(g)
-    def LPAR(self, _): return ""
-    def RPAR(self, _): return ""
     def PLUS(self, _): return "PLUS"
     def MINUS(self, _): return "MINUS"
     def MUL(self, _): return "MUL"
@@ -157,15 +224,11 @@ class Parser:
                       'sinh', 'cosh', 'tanh', 'sqrt', 'log', 'ln']
 
     def _add_parens(self, text):
+        """Добавляет скобки к функциям, если их нет."""
         r = text
         for f in sorted(self.funcs, key=len, reverse=True):
-            # Простой поиск и замена: "func " + следующий токен → "func(токен)"
-            import re as re2
             pattern = rf'\b{f}\s+([^\s(]+)'
-            def replacer(m):
-                token = m.group(1)
-                return f'{f}({token})'
-            r = re2.sub(pattern, replacer, r)
+            r = re.sub(pattern, rf'{f}(\1)', r, flags=re.IGNORECASE)
         return r
 
     def parse(self, text: str) -> str:

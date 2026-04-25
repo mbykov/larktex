@@ -1,20 +1,20 @@
-{"id": 1, "input": "мю равно хи", "expected": "μ = χ"}
-{"id": 2, "input": "арккосинус от арктангенс зи заглавная минус дельта", "expected": "arccos arctan Z - δ"}
-{"id": 3, "input": "не ди", "expected": "не ди"}
-{"id": 4, "input": "ар заглавная умножить омега", "expected": "R * ω"}
-{"id": 5, "input": "корень от косинус гиперболический уай", "expected": "sqrt cosh Y"}
-{"id": 6, "input": "интеграл от ви заглавная до ар заглавная от корень оу заглавная де оу заглавная", "expected": "integral V R sqrt U d U"}
-{"id": 7, "input": "зет подобно джи заглавная всё плюс бэ заглавная", "expected": "z similar J all + B"}
-{"id": 8, "input": "хэйч делить кей заглавная плюс ви", "expected": "h / K + v"}
-{"id": 9, "input": "интеграл от десяти до семи от ю де ю", "expected": "integral 10 7 u d u"}
-{"id": 10, "input": "интеграл от десять до двух от ар заглавная де ар заглавная", "expected": "integral 10 2 R d R"}
-{"id": 11, "input": "арккотангенс от синус би заглавная всё делить пи заглавная", "expected": "arccot sin B all / pi"}
-{"id": 12, "input": "интеграл от ипсилон до эм от эм в квадрате де эм", "expected": "integral ипсилон m m^2 d m"}
-{"id": 13, "input": "синус от интеграл ар де ар", "expected": "sin integral R d R"}
-{"id": 14, "input": "синус икс делить эм заглавная", "expected": "sin x / M"}
-{"id": 15, "input": "корень зет делить уай делить косинус эн", "expected": "sqrt z / Y / cos n"}
-{"id": 16, "input": "арккосинус омега минус синус о заглавная", "expected": "arccos ω - sin O"}
-{"id": 17, "input": "тэ заглавная приблизительно эй всё плюс эт", "expected": "T approx E all + η"}
-{"id": 18, "input": "синус зи в квадрате", "expected": "sin Z^2"}
-{"id": 19, "input": "косинус от кью", "expected": "cos q"}
-{"id": 20, "input": "арктангенс эм заглавная умножить эт умножить косинус хи", "expected": "arctan M * η * cos χ"}
+{"input": "а плюс б всё делить на в", "expected": "(a + b)/v"}
+{"input": "арккосинус от арктангенс зи заглавная минус дельта", "expected": "arccos arctan Z - δ"}
+{"input": "не ди", "expected": "не ди"}
+{"input": "ар заглавная умножить омега", "expected": "R * ω"}
+{"input": "корень от косинус гиперболический уай", "expected": "sqrt cosh Y"}
+{"input": "интеграл от ви заглавная до ар заглавная от корень оу заглавная де оу заглавная", "expected": "integral V R sqrt U d U"}
+{"input": "зет подобно джи заглавная всё плюс бэ заглавная", "expected": "z similar J all + B"}
+{"input": "хэйч делить кей заглавная плюс ви", "expected": "h/K + v"}
+{"input": "интеграл от десяти до семи от ю де ю", "expected": "integral 10 7 u d u"}
+{"input": "интеграл от десять до двух от ар заглавная де ар заглавная", "expected": "integral 10 2 R d R"}
+{"input": "арккотангенс от синус би заглавная всё делить пи заглавная", "expected": "arccot sin B all/Pi"}
+{"input": "интеграл от ипсилон до эм от эм в квадрате де эм", "expected": "integral ε m m^2 d m"}
+{"input": "синус от интеграл ар де ар", "expected": "sin integral R d R"}
+{"input": "синус икс делить эм заглавная", "expected": "sin x/M"}
+{"input": "корень зет делить уай делить косинус эн", "expected": "sqrt z/Y/cos n"}
+{"input": "арккосинус омега минус синус о заглавная", "expected": "arccos ω - sin O"}
+{"input": "тэ заглавная приблизительно эй всё плюс эт", "expected": "T approx E all + η"}
+{"input": "синус зи в квадрате", "expected": "sin Z^2"}
+{"input": "косинус от кью", "expected": "cos q"}
+{"input": "арктангенс эм заглавная умножить эт умножить косинус хи", "expected": "arctan M * η * cos χ"}

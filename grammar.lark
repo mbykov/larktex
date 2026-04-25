@@ -48,15 +48,17 @@ ln_call: "ln" LPAR expr RPAR
 
 special: integral | sum_expr | product_expr | diff_expr
 
-integral: "integral" ("from" expr "to" expr)? ("of")? expr ("d" VARIABLE)?
+integral: "integral" ("from" expr "to" expr)? ("of")? integral_body
+integral_body: expr ("d" VARIABLE)?
 sum_expr: "sum" ("from" expr "to" expr)? ("of")? expr
 product_expr: "product" ("from" expr "to" expr)? ("of")? expr
-diff_expr: "d" VARIABLE
+diff_expr: D VARIABLE
+D: "d"
 
 LPAR: "("
 RPAR: ")"
 
-VARIABLE: /[a-z]+/i
+VARIABLE: /[a-z]+/
 NUMBER: /\d+(\.\d+)?/
 GREEK: /[α-ωΑ-Ω]/
 

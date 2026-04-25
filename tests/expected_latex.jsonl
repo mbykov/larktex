@@ -1,0 +1,8 @@
+{"input": "синус икс", "expected": "\\sin(x)"}
+{"input": "икс равно игрек", "expected": "x = y"}
+{"input": "корень из а плюс б", "expected": "\\sqrt{a} + b"}
+{"input": "икс в квадрате", "expected": "x^2"}
+{"input": "мю равно хи", "expected": "μ = χ"}
+{"input": "интеграл от икс де икс", "expected": "\\int x \\, d x"}
+{"input": "синус икс плюс косинус игрек", "expected": "\\sin(x) + \\cos(y)"}
+{"input": "а плюс б всё делить на в", "expected": "(a + b) / v"}
