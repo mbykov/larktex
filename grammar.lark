@@ -31,6 +31,8 @@ UNARY: "-" | "+"
 func_call: sin_call | cos_call | tan_call | cot_call | arcsin_call
          | arccos_call | arctan_call | sinh_call | cosh_call | tanh_call
          | sqrt_call | log_call | ln_call
+         | sin_pow | cos_pow | tan_pow | cot_pow | arcsin_pow | arccos_pow | arctan_pow
+         | sinh_pow | cosh_pow | tanh_pow | sqrt_pow | log_pow | ln_pow
 
 sin_call: "sin" LPAR expr RPAR
 cos_call: "cos" LPAR expr RPAR
@@ -46,6 +48,20 @@ sqrt_call: "sqrt" LPAR expr RPAR
 log_call: "log" LPAR expr RPAR
 ln_call: "ln" LPAR expr RPAR
 
+sin_pow: "sin" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+cos_pow: "cos" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+tan_pow: "tan" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+cot_pow: "cot" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+arcsin_pow: "arcsin" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+arccos_pow: "arccos" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+arctan_pow: "arctan" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+sinh_pow: "sinh" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+cosh_pow: "cosh" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+tanh_pow: "tanh" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+sqrt_pow: "sqrt" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+log_pow: "log" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+ln_pow: "ln" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+
 special: integral | sum_expr | product_expr | diff_expr
 
 integral: "integral" ("from" expr "to" expr)? ("of")? integral_body
@@ -60,7 +76,7 @@ RPAR: ")"
 
 VARIABLE: /[a-z]+/
 NUMBER: /\d+(\.\d+)?/
-GREEK: /[α-ωΑ-Ω]/
+GREEK: /\\[a-z]+/
 
 %import common.WS
 %ignore WS

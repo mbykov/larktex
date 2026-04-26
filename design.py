@@ -56,21 +56,18 @@ def check_parentheses_balance(text: str) -> Tuple[bool, Optional[str]]:
 def reduce_nested_parens(text: str) -> str:
     """
     Убирает лишние вложенные скобки: (((a + b))) → (a + b)
-    Также убирает ((X)) → (X) где X содержит скобки.
+    Также убирает внешние скобки если всё выражение в них: (a + b) → a + b
+    И убирает скобки вокруг правого операнда после операторов: a = (b + c) → a = b + c
     """
     # Убираем ((X)) на (X) где X содержит любые символы кроме сбалансированных скобок
     prev = None
     current = text
     while prev != current:
         prev = current
-        # Заменяем ((...)) на (...) где внутри сбалансированы скобки
         current = re.sub(r'\(\(([^()]*(?:\([^()]*\)[^()]*)*)\)\)', r'(\1)', current)
     
-    # Убираем внешние скобки, если выражение полностью в них
-    while True:
-        if len(current) < 2 or current[0] != '(' or current[-1] != ')':
-            break
-        
+    # Убираем внешние скобки если всё выражение в них
+    while len(current) >= 2 and current[0] == '(' and current[-1] == ')':
         inner = current[1:-1]
         balance = 0
         valid = True
@@ -83,13 +80,18 @@ def reduce_nested_parens(text: str) -> str:
                     valid = False
                     break
         
-        if balance != 0:
-            valid = False
-        
-        if valid:
+        if balance == 0 and valid:
             current = inner
         else:
             break
+    
+    # Убираем скобки вокруг правого операнда после операторов: a = (b + c) → a = b + c
+    # Находим паттерн: оператор (сбалансированные скобки) и убираем скобки
+    prev = None
+    while prev != current:
+        prev = current
+        # Паттерн: оператор followed by ( ... )
+        current = re.sub(r'([=+\-*/])\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)', r'\1 \2', current)
     
     return current
 
@@ -117,7 +119,20 @@ def add_latex_escapes(text: str) -> str:
     
     # Остальные функции: sin x -> sin(x) -> \sin(x)
     for func in sorted(LATEX_FUNCS, key=len, reverse=True):
-        pattern = rf'\b{func}\s+([a-zA-Z0-9α-ωΑ-Ω])'
+        # Проверяем: sin^2 \theta -> \sin^2 \theta (без скобок)
+        pattern_power = rf'\b{func}\^(\d+)\s+(\\[a-z]+)'
+        def add_backslash_power(m):
+            return f'\\{func}^{m.group(1)} {m.group(2)}'
+        result = re.sub(pattern_power, add_backslash_power, result, flags=re.IGNORECASE)
+        
+        # sin \theta -> \sin \theta (без скобок)
+        pattern_no_parens = rf'\b{func}\s+(\\[a-z]+)'
+        def add_backslash(m):
+            return f'\\{func} {m.group(1)}'
+        result = re.sub(pattern_no_parens, add_backslash, result, flags=re.IGNORECASE)
+        
+        # sin x -> sin(x) -> \sin(x) для переменных
+        pattern = rf'\b{func}\s+([a-zA-Z0-9])'
         def add_parens(m):
             return f'{func}({m.group(1)})'
         result = re.sub(pattern, add_parens, result, flags=re.IGNORECASE)
@@ -148,6 +163,9 @@ def design(text: str) -> Tuple[Optional[str], Optional[str]]:
     balanced, error = check_parentheses_balance(text)
     if not balanced:
         return None, f"Ошибка скобок в '{text}': {error}"
+    
+    # Убираем лишние скобки
+    text = reduce_nested_parens(text)
     
     # Добавляем LaTeX-экранирование функций
     latex = add_latex_escapes(text)

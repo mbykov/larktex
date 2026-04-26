@@ -50,7 +50,7 @@ class LaTeXTransformer(Transformer):
         # c = [multiplicative, MUL/DIV, power, ALL_GROUP?]
         left, op, right = c[0], c[1], c[2]
         op_str = str(op)
-        if op_str == 'MUL': result = f"({left} \cdot {right})"
+        if op_str == 'MUL': result = f"{left}{right}"  # Убираем \cdot
         elif op_str == 'DIV': result = f"({left} / {right})"
         else: result = f"{left}"
         return result
@@ -117,6 +117,12 @@ class LaTeXTransformer(Transformer):
             arg = tree.children[1] if len(tree.children) >= 2 else (tree.children[0] if tree.children else "")
             if fname == 'sqrt': return f"\\sqrt{{{arg}}}"
             return f"\\{fname}({arg})"
+        elif isinstance(data, str) and data.endswith('_pow'):
+            fname = data.replace('_pow', '')
+            power = tree.children[1] if len(tree.children) >= 2 else tree.children[0]
+            arg = tree.children[2] if len(tree.children) >= 3 else (tree.children[1] if len(tree.children) >= 2 else "")
+            if fname == 'sqrt': return f"sqrt^{power}{{{arg}}}"
+            return f"{fname}^{power} {arg}"
         elif isinstance(data, str) and data == 'all_expr':
             inner = tree.children[0] if tree.children else ""
             return f"({inner})"
@@ -228,16 +234,6 @@ class Parser:
         self.funcs = ['sin', 'cos', 'tan', 'cot', 'arcsin', 'arccos', 'arctan',
                       'sinh', 'cosh', 'tanh', 'sqrt', 'log', 'ln']
 
-    def _add_parens(self, text):
-        """Добавляет скобки к функциям, если их нет."""
-        r = text
-        for f in sorted(self.funcs, key=len, reverse=True):
-            # Ищем функцию, за которой следует пробел и аргумент (не скобка)
-            # Аргумент может быть переменной, числом или греческой буквой
-            pattern = rf'\b{f}\s+([a-zα-ωA-ZΩ0-9]+)'
-            r = re.sub(pattern, rf'{f}(\1)', r, flags=re.IGNORECASE)
-        return r
-
     def parse(self, text: str) -> str:
         # Проверяем, есть ли "all" в тексте
         if ' all ' in text:
@@ -247,6 +243,54 @@ class Parser:
             # Обычный парсинг
             parsed = str(self.parser.parse(self._add_parens(text))).strip()
             return parsed
+
+    def _add_parens(self, text: str) -> str:
+        """Добавляет скобки к функциям, если их нет."""
+        r = text
+        
+        # Сначала обработать функции со степенью: "cos^2 \theta" -> "cos^2 \theta" (без скобок для греческих)
+        for f in sorted(self.funcs, key=len, reverse=True):
+            # Для греческих букв: cos^2 \theta -> cos^2 \theta (без скобок)
+            pattern_greek = rf'\b{f}\^(\d+)\s+(\\[a-z]+)'
+            def repl_greek(match):
+                power = match.group(1)
+                arg = match.group(2)
+                return f'{f}^{power} {arg}'
+            r = re.sub(pattern_greek, repl_greek, r, flags=re.IGNORECASE)
+            
+            # Для переменных: cos^2 x -> cos^2(x)
+            pattern_var = rf'\b{f}\^(\d+)\s+([a-zA-Z0-9])'
+            def repl_var(match):
+                power = match.group(1)
+                arg = match.group(2)
+                return f'{f}^{power}({arg})'
+            r = re.sub(pattern_var, repl_var, r, flags=re.IGNORECASE)
+        
+        # Затем обработать обычные функции: "cos x" -> "cos(x)"
+        for f in sorted(self.funcs, key=len, reverse=True):
+            # Для греческих букв: cos \theta -> cos \theta (без скобок)
+            pattern_greek = rf'\b{f}\s+(\\[a-z]+)'
+            def repl_greek(match):
+                arg = match.group(1)
+                return f'{f} {arg}'
+            r = re.sub(pattern_greek, repl_greek, r, flags=re.IGNORECASE)
+            
+            # Для выражений с операторами: cos x + y -> cos(x + y)
+            pattern_expr = rf'\b{f}\s+((?:(?![+\-*/^=<>!]).)+)'
+            def repl(match):
+                arg = match.group(1).strip()
+                if arg.startswith('('):
+                    return match.group(0)
+                return f'{f}({arg})'
+            r = re.sub(pattern_expr, repl, r, flags=re.IGNORECASE)
+        
+        # Добавить явное умножение между числом и греческой буквой/переменной: "2 \theta" -> "2*\theta"
+        # Но не после функции со степенью: "cos^2 \theta" остаётся без *
+        # Проверяем: число не должно быть после ^N
+        r = re.sub(r'(\d)(?<!\^\d)\s+(\\[a-z]+)', r'\1*\2', r, flags=re.IGNORECASE)
+        r = re.sub(r'(\d)(?<!\^\d)\s+([a-zA-Z0-9])', r'\1*\2', r, flags=re.IGNORECASE)
+        
+        return r
 
     def _balance_all(self, original: str) -> str:
         """

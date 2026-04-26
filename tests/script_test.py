@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Тесты для нормализатора с детализированным выводом."""
+"""Тесты для larktex с детализированным выводом."""
 
 import argparse
 import json
@@ -9,7 +9,7 @@ from pathlib import Path
 # Добавить корень проекта в путь
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from normalizer import Normalizer
+from larktex import LarktexEngine
 
 
 # Цвета для вывода
@@ -20,12 +20,12 @@ RESET = '\033[0m'
 
 def parse_args():
     """Разбор аргументов командной строки."""
-    parser = argparse.ArgumentParser(description='Тесты для нормализатора')
+    parser = argparse.ArgumentParser(description='Тесты для larktex')
     parser.add_argument(
         '--file',
         type=str,
         default=None,
-        help='Путь к файлу JSONL с тестами (по умолчанию: tests/expected_norm.jsonl)'
+        help='Путь к файлу JSONL с тестами (по умолчанию: tests/expected_latex.jsonl)'
     )
     return parser.parse_args()
 
@@ -49,7 +49,7 @@ def load_test_cases(jsonl_path: Path):
 def main():
     """Запуск тестов с детализированным выводом."""
     args = parse_args()
-    
+
     # Путь к файлу с тестами
     tests_dir = Path(__file__).parent
     if args.file:
@@ -57,90 +57,88 @@ def main():
         if not jsonl_file.is_absolute():
             jsonl_file = tests_dir.parent / args.file
     else:
-        jsonl_file = tests_dir / "expected_norm.jsonl"
-    
+        jsonl_file = tests_dir / "expected_latex.jsonl"
+
     if not jsonl_file.exists():
         print(f"Ошибка: файл {jsonl_file} не найден")
         sys.exit(1)
-    
-    # Инициализировать нормализатор
-    i18n_dir = tests_dir.parent / "i18n"
-    if not i18n_dir.exists():
-        print(f"Ошибка: директория {i18n_dir} не найдена")
-        sys.exit(1)
-    
-    normalizer = Normalizer(i18n_dir=str(i18n_dir))
-    
+
+    # Инициализировать движок (ресурсы загружаются один раз)
+    engine = LarktexEngine()
+
     # Загрузить тесты
     test_cases = load_test_cases(jsonl_file)
-    
+
     if not test_cases:
         print("Нет тестов для выполнения")
         sys.exit(1)
-    
+
     passed = 0
     failed = 0
-    failed_tests = []
-    
+
     for i, tc in enumerate(test_cases):
         input_text = tc.get('input', '')
         expected = tc.get('expected', '')
         line_num = tc.get('_line_num', '?')
-        
+
         # Выполнить нормализацию
-        actual = normalizer.normalize_text(input_text)
-        
+        normalized = engine.normalizer.normalize_text(input_text)
+
+        try:
+            parsed = engine.parser.parse(normalized)
+            from design import design
+            latex, error = design(parsed)
+            if error:
+                actual = f"# Design error: {error}\n{parsed}"
+            else:
+                actual = latex
+        except Exception as e:
+            print(f"\n{RED}--- Тест (строка {line_num}) ---{RESET}")
+            print(f"  Input:      {input_text!r}")
+            print(f"  Normalized: {normalized!r}")
+            print(f"  Actual:     ERROR: {e}")
+            print(f"{'=' * 60}")
+            print(f"\n{RED}ИТОГИ: {passed} пройдено, 1 не пройдено из {len(test_cases)}{RESET}")
+            print(f"{'=' * 60}")
+            sys.exit(1)
+
         # Проверить результат
         if actual == expected:
             print(f"{GREEN}✓{RESET} {input_text} - {expected}")
             passed += 1
         else:
-            # Сохранить информацию о failed тесте
-            failed_tests.append({
-                'line_num': line_num,
-                'input': input_text,
-                'expected': expected,
-                'actual': actual
-            })
-            failed += 1
-    
-    # Вывести отладочную информацию для failed тестов
-    if failed_tests:
-        print(f"\n{RED}{'=' * 70}{RESET}")
-        print(f"{RED}НЕ ПРОЙДЕННЫЕ ТЕСТЫ{RESET}")
-        print(f"{RED}{'=' * 70}{RESET}")
-        
-        for ft in failed_tests:
-            print(f"\n{RED}--- Тест (строка {ft['line_num']}) ---{RESET}")
-            print(f"  Input:    {ft['input']!r}")
-            print(f"  Expected: {ft['expected']!r}")
-            print(f"  Actual:   {ft['actual']!r}")
+            print(f"\n{RED}--- Тест (строка {line_num}) ---{RESET}")
+            print(f"  Input:      {input_text!r}")
+            print(f"  Normalized: {normalized!r}")
+            print(f"  Parsed:     {parsed!r}")
+            print(f"  Expected:   {expected!r}")
+            print(f"  Actual:     {actual!r}")
             
             # Показать различия
             print(f"\n  Различия:")
-            print(f"    Ожидаемая длина: {len(ft['expected'])}")
-            print(f"    Фактическая длина: {len(ft['actual'])}")
+            print(f"    Ожидаемая длина: {len(expected)}")
+            print(f"    Фактическая длина: {len(actual)}")
             
             # Показать посимвольно
-            min_len = min(len(ft['expected']), len(ft['actual']))
+            min_len = min(len(expected), len(actual))
             for pos in range(min_len):
-                if ft['expected'][pos] != ft['actual'][pos]:
+                if expected[pos] != actual[pos]:
                     print(f"    Первая разница на позиции {pos}:")
-                    print(f"      Expected[{pos}]: {ft['expected'][pos]!r} (ord={ord(ft['expected'][pos])})")
-                    print(f"      Actual[{pos}]:   {ft['actual'][pos]!r} (ord={ord(ft['actual'][pos])})")
+                    print(f"      Expected[{pos}]: {expected[pos]!r} (ord={ord(expected[pos])})")
+                    print(f"      Actual[{pos}]:   {actual[pos]!r} (ord={ord(actual[pos])})")
                     
                     # Показать контекст вокруг различия
                     ctx_start = max(0, pos - 10)
-                    ctx_end_exp = min(len(ft['expected']), pos + 10)
-                    ctx_end_act = min(len(ft['actual']), pos + 10)
-                    print(f"\n    Контекст (Expected): ...{ft['expected'][ctx_start:ctx_end_exp]!r}...")
-                    print(f"    Контекст (Actual):   ...{ft['actual'][ctx_start:ctx_end_act]!r}...")
+                    ctx_end_exp = min(len(expected), pos + 10)
+                    ctx_end_act = min(len(actual), pos + 10)
+                    print(f"\n    Контекст (Expected): ...{expected[ctx_start:ctx_end_exp]!r}...")
+                    print(f"    Контекст (Actual):   ...{actual[ctx_start:ctx_end_act]!r}...")
                     break
             
             # Показать diff-подобный вывод
             print(f"\n  Пошаговое сравнение токенов:")
-            exp_tokens = ft['expected'].split()
-            act_tokens = ft['actual'].split()
+            exp_tokens = expected.split()
+            act_tokens = actual.split()
             
             max_tokens = max(len(exp_tokens), len(act_tokens))
             for j in range(max_tokens):
@@ -149,14 +147,17 @@ def main():
                 marker = "✓" if exp_tok == act_tok else "✗"
                 print(f"    [{j:2d}] {marker} Expected: {exp_tok!r:15} Actual: {act_tok!r}")
             
-            print(f"{RED}{'=' * 70}{RESET}")
-    
+            print(f"{'=' * 60}")
+            print(f"\n{RED}ИТОГИ: {passed} пройдено, 1 не пройдено из {len(test_cases)}{RESET}")
+            print(f"{'=' * 60}")
+            sys.exit(1)
+
     # Итоговая статистика
     print(f"\n{'=' * 60}")
     print(f"ИТОГИ: {passed} пройдено, {failed} не пройдено из {len(test_cases)}")
     print(f"{'=' * 60}")
-    
-    sys.exit(0 if failed == 0 else 1)
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":

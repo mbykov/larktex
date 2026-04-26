@@ -43,11 +43,25 @@ class Normalizer:
             'integrals', 'summation'
         ]
         
+        # Маппинг греческих букв на LaTeX-термины
+        greek_to_latex = {
+            'α': '\\alpha', 'β': '\\beta', 'γ': '\\gamma', 'δ': '\\delta',
+            'ε': '\\epsilon', 'ζ': '\\zeta', 'η': '\\eta', 'θ': '\\theta',
+            'ι': '\\iota', 'κ': '\\kappa', 'λ': '\\lambda', 'μ': '\\mu',
+            'ν': '\\nu', 'ξ': '\\xi', 'π': '\\pi', 'ρ': '\\rho',
+            'σ': '\\sigma', 'τ': '\\tau', 'φ': '\\phi', 'χ': '\\chi',
+            'ψ': '\\psi', 'ω': '\\omega'
+        }
+        
         for category in categories_to_process:
             items = self.data.get(category, {})
             for target, synonyms in items.items():
                 for synonym in synonyms:
-                    self._reverse_map[synonym.lower()] = target
+                    # Если цель - греческая буква, мапим на LaTeX
+                    if target in greek_to_latex:
+                        self._reverse_map[synonym.lower()] = greek_to_latex[target]
+                    else:
+                        self._reverse_map[synonym.lower()] = target
         
         # Особая обработка misc: open_paren -> '(', close_paren -> ')'
         misc_items = self.data.get('misc', {})
@@ -92,6 +106,14 @@ class Normalizer:
                         re.IGNORECASE
                     )
                     result = pattern.sub(f'^{power}', result)
+        
+        # 1.1 Обработка "квадрат" и "куб" без предлога "в" (для конструкций типа "синус квадрат")
+        # "квадрат", "в квадрате" -> ^2
+        pattern = re.compile(r'\bквадрат\b', re.IGNORECASE)
+        result = pattern.sub('^2', result)
+        # "куб" -> ^3
+        pattern = re.compile(r'\bкуб\b', re.IGNORECASE)
+        result = pattern.sub('^3', result)
         
         # 2. "всё" / "все" → "all" (просто замена слова, БЕЗ скобок)
         result = re.sub(r'\bвсё\b', ' all ', result, flags=re.IGNORECASE)
@@ -163,12 +185,17 @@ class Normalizer:
                 r'\b' + re.escape(synonym) + r'\b',
                 re.IGNORECASE
             )
-            result = pattern.sub(target, result)
+            # Для LaTeX терминов используем lambda чтобы избежать интерпретации backslash
+            if target.startswith('\\'):
+                result = pattern.sub(lambda m: target, result)
+            else:
+                result = pattern.sub(target, result)
         
         # 9. Очистка пробелов (сохраняем пробелы вокруг операторов)
         result = re.sub(r'\s+\^', '^', result)  # Пробел перед ^ удаляем
         result = re.sub(r'\(\s+', '(', result)  # Пробел после ( удаляем
         result = re.sub(r'\s+\)', ')', result)  # Пробел перед ) удаляем
+        
         result = re.sub(r'\s+', ' ', result).strip()  # Остальные пробелы нормализуем
         
         return result
