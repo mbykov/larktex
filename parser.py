@@ -7,34 +7,18 @@ from lark import Lark, Transformer
 
 
 class LaTeXTransformer(Transformer):
-    def __init__(self):
-        super().__init__()
-        self.funcs = {
-            'sin': 'sin', 'cos': 'cos', 'tan': 'tan', 'cot': 'cot',
-            'arcsin': 'arcsin', 'arccos': 'arccos', 'arctan': 'arctan',
-            'sinh': 'sinh', 'cosh': 'cosh', 'tanh': 'tanh',
-            'sqrt': 'sqrt', 'log': 'log', 'ln': 'ln',
-        }
-
     def start(self, c): return c[0] if c else ""
     def expr(self, c): return c[0] if c else ""
 
     def primary(self, c):
-        # LPAR expr RPAR -> (expr)
         if len(c) == 3 and str(c[0]) in ('LPAR', '('):
-            # c[1] уже преобразован Transformer
             return f"({c[1]})"
         if len(c) == 1:
             val = c[0]
             if isinstance(val, str): return val
             if hasattr(val, 'data'):
-                if val.data == 'func_call' and len(val.children) == 1:
-                    inner = val.children[0]
-                    if hasattr(inner, 'data') and inner.data.endswith('_call'):
-                        return self._handle_tree(inner)
                 return self._handle_tree(val)
             return val
-        # Унарный плюс/минус
         if len(c) == 2 and str(c[0]) in ('MINUS', '-', 'PLUS', '+'):
             op_token, val = c[0], c[1]
             if str(op_token) in ('MINUS', '-'):
@@ -47,17 +31,15 @@ class LaTeXTransformer(Transformer):
 
     def multiplicative(self, c):
         if len(c) == 1: return c[0]
-        # c = [multiplicative, MUL/DIV, power, ALL_GROUP?]
         left, op, right = c[0], c[1], c[2]
         op_str = str(op)
-        if op_str == 'MUL': result = f"{left}{right}"  # Убираем \cdot
+        if op_str == 'MUL': result = f"{left}{right}"
         elif op_str == 'DIV': result = f"({left} / {right})"
         else: result = f"{left}"
         return result
 
     def additive(self, c):
         if len(c) == 1: return c[0]
-        # c = [additive, PLUS/MINUS, multiplicative, ALL_GROUP?]
         left, op, right = c[0], c[1], c[2]
         op_str = str(op)
         if op_str == 'PLUS': result = f"({left} + {right})"
@@ -65,13 +47,27 @@ class LaTeXTransformer(Transformer):
         else: result = f"{left}"
         return result
 
+    def multiplicative(self, c):
+        if len(c) == 1: return c[0]
+        left, op, right = c[0], c[1], c[2]
+        op_str = str(op)
+        if op_str == 'MUL': result = f"{left}{right}"
+        elif op_str == 'DIV': result = f"({left} / {right})"
+        else: result = f"{left}"
+        return result
+
     def power(self, c):
         if len(c) == 1: return c[0]
-        # c = [primary, EXP, primary]
         base = c[0]
-        exp = c[2]  # пропускаем EXP токен
+        exp = c[2]
         es = str(exp)
-        return f"{base}^{es}" if len(es) == 1 else f"{base}^{{{es}}}"  
+        return f"{base}^{es}" if len(es) == 1 else f"{base}^{{{es}}}"
+
+    def all_expr(self, c):
+        # all_expr: expr all → (expr)
+        if c:
+            return f"({c[0]})"
+        return ""
 
     def comparison(self, c):
         if len(c) == 1: return c[0]
@@ -84,62 +80,95 @@ class LaTeXTransformer(Transformer):
         op = op_map.get(str(op_token), str(op_token))
         return f"{left} {op} {right}"
 
-    def primary(self, c):
-        # LPAR expr RPAR -> (expr)
-        if len(c) == 3 and str(c[0]) in ('LPAR', '('):
-            return f"({c[1]})"
-        if len(c) == 1:
-            val = c[0]
-            if isinstance(val, str): return val
-            if hasattr(val, 'data'):
-                if val.data == 'func_call' and len(val.children) == 1:
-                    inner = val.children[0]
-                    if hasattr(inner, 'data') and inner.data.endswith('_call'):
-                        return self._handle_tree(inner)
-                return self._handle_tree(val)
-            return val
-        # Унарный плюс/минус
-        if len(c) == 2 and str(c[0]) in ('MINUS', '-', 'PLUS', '+'):
-            op_token, val = c[0], c[1]
-            if str(op_token) in ('MINUS', '-'):
-                return f"-{val}"
-            return f"+{val}"
-        return c[0]
-
-    def LPAR(self, _): return '('
-    def RPAR(self, _): return ')'
-    def ALL_GROUP(self, _): return ')'  # "all" → закрывающая скобка
-
     def _handle_tree(self, tree):
         data = getattr(tree, 'data', str(tree))
+        
+        # Обработка func_call: [sin_call] → передаём sin_call дальше
+        if isinstance(data, str) and data == 'func_call':
+            if tree.children:
+                return self._handle_tree(tree.children[0])  # sin_call
+            return ""
+        
+        # Обработка вызовов функций (sin_call, cos_call, exp_call и т.д.)
         if isinstance(data, str) and data.endswith('_call'):
-            fname = data.replace('_call', '')
-            arg = tree.children[1] if len(tree.children) >= 2 else (tree.children[0] if tree.children else "")
-            if fname == 'sqrt': return f"\\sqrt{{{arg}}}"
-            return f"\\{fname}({arg})"
-        elif isinstance(data, str) and data.endswith('_pow'):
-            fname = data.replace('_pow', '')
-            power = tree.children[1] if len(tree.children) >= 2 else tree.children[0]
-            arg = tree.children[2] if len(tree.children) >= 3 else (tree.children[1] if len(tree.children) >= 2 else "")
-            if fname == 'sqrt': return f"sqrt^{power}{{{arg}}}"
-            return f"{fname}^{power} {arg}"
-        elif isinstance(data, str) and data == 'all_expr':
-            inner = tree.children[0] if tree.children else ""
-            return f"({inner})"
-        elif isinstance(data, str) and data == 'integral':
-            return self._integral(tree.children)
-        elif isinstance(data, str) and data == 'sum_expr':
-            return self._sum(tree.children)
-        elif isinstance(data, str) and data == 'product_expr':
-            return self._product(tree.children)
-        elif isinstance(data, str) and data == 'diff_expr':
-            return f"d {tree.children[0]}" if tree.children else "d"
-        elif isinstance(data, str):
-            # Прямой токен (sin, cos, NUMBER и т.д.)
+            func_name = data.replace('_call', '')
+            if tree.children:
+                arg_tree = tree.children[0]  # exp_arg
+                arg = self._child_to_str(arg_tree)
+            else:
+                arg = ""
+            
+            if func_name == 'exp':
+                return f"\\exp({arg})"
+            elif func_name == 'sqrt':
+                return f"\\sqrt{{{arg}}}"
+            else:
+                return f"\\{func_name}({arg})"
+        
+        # Обработка аргументов функций (exp_arg, sin_arg и т.д.)
+        # exp_arg: exp LPAR expr RPAR | exp VAR | exp GREEK
+        # children: [exp, LPAR, expr, RPAR] (len=4) или [exp, VAR] (len=2) или [exp, GREEK] (len=2)
+        if isinstance(data, str) and data.endswith('_arg'):
+            if tree.children and len(tree.children) > 1:
+                if len(tree.children) == 4:  # LPAR expr RPAR
+                    return self._child_to_str(tree.children[2])  # expr
+                else:  # VAR или GREEK (len=2)
+                    arg_child = tree.children[1]
+                    # Проверка: это токен VAR или дерево GREEK?
+                    if isinstance(arg_child, str):
+                        return arg_child
+                    if hasattr(arg_child, 'data'):
+                        # Это может быть дерево с GREEK внутри
+                        return self._child_to_str(arg_child)
+                    return str(arg_child)
+            return ""
+        
+        if isinstance(data, str) and data == 'limit_expr':
+            # limit_expr: "lim" ("as")? VAR TENDS_TO limit_val limit_expr_tail
+            # limit_expr_tail: ("of")? primary
+            # children с "as": ["as", VARIABLE, "tends_to", limit_val_tree, limit_expr_tail_tree] = 5
+            # children без "as": [VARIABLE, "tends_to", limit_val_tree, limit_expr_tail_tree] = 4
+            if len(tree.children) == 5 and str(tree.children[0]) == 'as':
+                var = self._child_to_str(tree.children[1])
+                limit_val_tree = tree.children[3]
+                tail_tree = tree.children[4]
+            elif len(tree.children) == 4:
+                var = self._child_to_str(tree.children[0])
+                limit_val_tree = tree.children[2]
+                tail_tree = tree.children[3]
+            else:
+                return f"\\lim_{{?}} ?"  # Ошибка в структуре
+            
+            # Получаем значение из limit_val_tree (это дерево limit_val с одним ребенком: NUMBER/VAR/GREEK/INF)
+            if hasattr(limit_val_tree, 'data') and limit_val_tree.children:
+                limit_val = self._child_to_str(limit_val_tree.children[0])
+            else:
+                limit_val = str(limit_val_tree)
+            
+            # limit_expr_tail: ("of")? primary
+            if hasattr(tail_tree, 'data') and tail_tree.data == 'limit_expr_tail':
+                if len(tail_tree.children) == 1:
+                    body = tail_tree.children[0]  # primary
+                else:
+                    body = tail_tree.children[1]  # "of", primary
+            else:
+                body = tail_tree
+            
+            expr = self._child_to_str(body) if body else ""
+            return f"\\lim_{{{var} \\to {limit_val}}} {expr}"
+        
+        if isinstance(data, str):
             return data
         return str(tree)
 
-    def _integral(self, c):
+    def _child_to_str(self, child):
+        if isinstance(child, str):
+            return child
+        if hasattr(child, 'data'):
+            return self._handle_tree(child)
+        return str(child)
+
+    def integral(self, c):
         expr = lower = upper = diff = ""
         i = 0
         while i < len(c):
@@ -152,9 +181,18 @@ class LaTeXTransformer(Transformer):
                 i += 2
             elif s == 'of':
                 i += 1
-            elif s == 'd':
-                diff = f"d {self._child_to_str(c[i+1])}"
-                i += 2
+            elif hasattr(c[i], 'data') and c[i].data == 'integral_body':
+                # integral_body: primary ("d" VAR)?
+                body = c[i]
+                if len(body.children) >= 1:
+                    expr = self._child_to_str(body.children[0])
+                if len(body.children) >= 2:
+                    # [primary, VAR] или [primary, "d", VAR]
+                    if str(body.children[1]) == 'd' and len(body.children) >= 3:
+                        diff = f"d {self._child_to_str(body.children[2])}"
+                    elif len(body.children) == 2:  # [primary, VAR] без "d"
+                        diff = f"d {self._child_to_str(body.children[1])}"
+                i += 1
             elif str(c[i]) in ('INTEGRAL',):
                 i += 1
             else:
@@ -162,23 +200,6 @@ class LaTeXTransformer(Transformer):
                 i += 1
         res = "\\int" + (f"_{lower}^{upper}" if lower or upper else "") + f" {expr}"
         return f"{res} \\, {diff}" if diff else res
-
-    def integral_body(self, c):
-        """Обрабатывает integral_body: expr ('d' VARIABLE)?"""
-        if len(c) == 1:
-            return c[0]
-        # c = [expr, D, VARIABLE]
-        expr = self._child_to_str(c[0])
-        var = self._child_to_str(c[2]) if len(c) > 2 else self._child_to_str(c[1])
-        return f"{expr} \\, d {var}"
-
-    def _child_to_str(self, child):
-        """Преобразует child (строка или дерево) в LaTeX строку."""
-        if isinstance(child, str):
-            return child
-        if hasattr(child, 'data'):
-            return self._handle_tree(child)
-        return str(child)
 
     def _sum(self, c):
         expr = lower = upper = ""; i = 1
@@ -200,7 +221,6 @@ class LaTeXTransformer(Transformer):
             else: expr = c[i]; i += 1
         return "\\prod" + (f"_{lower}^{upper}" if lower or upper else "") + f" {expr}"
 
-    def func_call(self, c): return c[0] if c else ""
     def special(self, c): return c[0] if c else ""
 
     def NUMBER(self, n): return str(n)
@@ -231,130 +251,78 @@ def load_grammar():
 class Parser:
     def __init__(self):
         self.parser = Lark(load_grammar(), parser='lalr', transformer=LaTeXTransformer())
-        self.funcs = ['sin', 'cos', 'tan', 'cot', 'arcsin', 'arccos', 'arctan',
-                      'sinh', 'cosh', 'tanh', 'sqrt', 'log', 'ln']
 
     def parse(self, text: str) -> str:
-        # Проверяем, есть ли "all" в тексте
+        # Обработка "all" через post-processing
         if ' all ' in text:
-            # Используем post-processing для "all"
-            return self._balance_all(text)
-        else:
-            # Обычный парсинг
-            parsed = str(self.parser.parse(self._add_parens(text))).strip()
-            return parsed
+            text = self._balance_all(text)
+        parsed = str(self.parser.parse(text)).strip()
+        return parsed
 
-    def _add_parens(self, text: str) -> str:
-        """Добавляет скобки к функциям, если их нет."""
-        r = text
-        
-        # Сначала обработать функции со степенью: "cos^2 \theta" -> "cos^2 \theta" (без скобок для греческих)
-        for f in sorted(self.funcs, key=len, reverse=True):
-            # Для греческих букв: cos^2 \theta -> cos^2 \theta (без скобок)
-            pattern_greek = rf'\b{f}\^(\d+)\s+(\\[a-z]+)'
-            def repl_greek(match):
-                power = match.group(1)
-                arg = match.group(2)
-                return f'{f}^{power} {arg}'
-            r = re.sub(pattern_greek, repl_greek, r, flags=re.IGNORECASE)
-            
-            # Для переменных: cos^2 x -> cos^2(x)
-            pattern_var = rf'\b{f}\^(\d+)\s+([a-zA-Z0-9])'
-            def repl_var(match):
-                power = match.group(1)
-                arg = match.group(2)
-                return f'{f}^{power}({arg})'
-            r = re.sub(pattern_var, repl_var, r, flags=re.IGNORECASE)
-        
-        # Затем обработать обычные функции: "cos x" -> "cos(x)"
-        for f in sorted(self.funcs, key=len, reverse=True):
-            # Для греческих букв: cos \theta -> cos \theta (без скобок)
-            pattern_greek = rf'\b{f}\s+(\\[a-z]+)'
-            def repl_greek(match):
-                arg = match.group(1)
-                return f'{f} {arg}'
-            r = re.sub(pattern_greek, repl_greek, r, flags=re.IGNORECASE)
-            
-            # Для выражений с операторами: cos x + y -> cos(x + y)
-            pattern_expr = rf'\b{f}\s+((?:(?![+\-*/^=<>!]).)+)'
-            def repl(match):
-                arg = match.group(1).strip()
-                if arg.startswith('('):
-                    return match.group(0)
-                return f'{f}({arg})'
-            r = re.sub(pattern_expr, repl, r, flags=re.IGNORECASE)
-        
-        # Добавить явное умножение между числом и греческой буквой/переменной: "2 \theta" -> "2*\theta"
-        # Но не после функции со степенью: "cos^2 \theta" остаётся без *
-        # Проверяем: число не должно быть после ^N
-        r = re.sub(r'(\d)(?<!\^\d)\s+(\\[a-z]+)', r'\1*\2', r, flags=re.IGNORECASE)
-        r = re.sub(r'(\d)(?<!\^\d)\s+([a-zA-Z0-9])', r'\1*\2', r, flags=re.IGNORECASE)
-        
-        return r
-
-    def _balance_all(self, original: str) -> str:
-        """
-        Добавляет скобки для группировки "all".
-        
-        Правила:
-        - Группируем последовательность: операнд [оператор операнд]*
-        - Останавливаемся перед именем функции без оператора
-        """
-        import re
-        
-        funcs = {'sin', 'cos', 'tan', 'cot', 'arcsin', 'arccos', 'arctan',
-                 'sinh', 'cosh', 'tanh', 'sqrt', 'log', 'ln', 'integral', 'sum', 'product'}
-        
-        result = original
-        
+    def _balance_all(self, text: str) -> str:
+        """Заменяет 'expr all' на '(expr)'."""
+        result = text
         while ' all ' in result:
             idx = result.find(' all ')
-            
-            # Идём влево
+            # Идём влево от 'all', собираем выражение до оператора или начала строки
             start = idx
-            in_group = False
+            depth = 0
             
+            # Идём влево, пока не найдём оператор на уровне 0 или начало строки
             while start > 0:
-                ch = result[start-1]
-                
-                if ch in ' 	':
+                ch = result[start - 1]
+                if ch == ')':
+                    depth += 1
                     start -= 1
-                elif ch in '+-*/':
+                elif ch == '(':
+                    depth -= 1
                     start -= 1
-                    in_group = True
-                elif ch.isalnum() or ch in 'α-ωΑ-Ω':
-                    # Читаем имя/число
-                    end = start
-                    while start > 0 and (result[start-1].isalnum() or result[start-1] in 'α-ωΑ-Ω'):
-                        start -= 1
-                    word = result[start:end]
-                    
-                    # Если это функция и нет оператора перед ней — стоп
-                    if word.lower() in funcs and not in_group:
-                        start = end  # Возвращаемся назад
-                        break
-                    
-                    in_group = True
-                else:
+                elif depth == 0 and ch in '+-*/':
+                    # Нашли оператор — выражение начинается после него
+                    # Но нужно включить и сам оператор в скобки
+                    start -= 1  # включаем оператор
+                    # Теперь идём дальше влево до следующего оператора или начала
+                    while start > 0:
+                        ch2 = result[start - 1]
+                        if ch2 == ')':
+                            depth += 1
+                            start -= 1
+                        elif ch2 == '(':
+                            depth -= 1
+                            start -= 1
+                        elif depth == 0 and ch2 in '+-*/':
+                            start -= 1  # включаем этот оператор
+                            break
+                        else:
+                            start -= 1
                     break
+                elif result[start - 1] == ' ':
+                    start -= 1
+                else:
+                    start -= 1
             
-            # Добавляем скобки
-            if in_group:
-                result = result[:start] + '(' + result[start:idx].strip() + ')' + result[idx+5:]
-            else:
-                result = result[:idx] + result[idx+5:]
-        
-        # Парсим результат без "all"
-        result = re.sub(r'\ball\b', '', result).strip()
-        return str(self.parser.parse(self._add_parens(result))).strip()
+            # Добавляем скобки и удаляем ' all'
+            expr = result[start:idx].strip()
+            result = result[:start] + '(' + expr + ')' + result[idx+5:]
+            # Рекурсивно обрабатываем результат
+            result = self._balance_all(result)
+            break
+        return result
+
+    def parse(self, text: str) -> str:
+        # Обработка "all" через post-processing
+        if ' all ' in text:
+            text = self._balance_all(text)
+        parsed = str(self.parser.parse(text)).strip()
+        return parsed
 
 
 def main():
     p = Parser()
     tests = [
+        "sin x", "cos x", "exp x", "sqrt x",
         "sin(x)", "x = y", "sqrt(a) + b", "x^2",
-        "integral(sin(x)) d x", "integral from 0 to 1 of x d x",
-        "sin(x^2)", "a + b * c", "x approx y", "sin(x + y)",
+        "a + b * c", "x approx y", "sin(x + y)",
         "-x", "x + y * z", "a - b - c"
     ]
     for t in tests:

@@ -14,10 +14,10 @@ from typing import Optional, Tuple
 
 # Функции, которым нужна обратная косая черта в LaTeX
 LATEX_FUNCS = [
-    'sin', 'cos', 'tan', 'cot',
-    'arcsin', 'arccos', 'arctan', 'arccot',
+    'sin', 'cos', 'tan', 'cot', 'arccot',
+    'arcsin', 'arccos', 'arctan',
     'sinh', 'cosh', 'tanh', 'coth',
-    'log', 'ln', 'exp',
+    'log', 'ln', 'exp', 'sqrt', 'lim',
 ]
 
 

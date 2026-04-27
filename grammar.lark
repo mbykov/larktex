@@ -13,68 +13,109 @@ SIMILAR: "similar"
 APPROX: "approx"
 PROP: "prop"
 EQUIV: "equiv"
+TENDS_TO: "tends_to"
 
 additive: additive PLUS multiplicative | additive MINUS multiplicative | multiplicative
 PLUS: "+"
 MINUS: "-"
-
 multiplicative: multiplicative MUL power | multiplicative DIV power | power
 MUL: "*"
 DIV: "/"
-
-power: primary EXP primary | primary
+power: primary EXP power | primary
 EXP: "^"
 
-primary: NUMBER | VARIABLE | GREEK | LPAR expr RPAR | func_call | special | UNARY primary
+primary: NUMBER | GREEK | LPAR expr RPAR | special | UNARY primary | VAR | func_call
 UNARY: "-" | "+"
 
-func_call: sin_call | cos_call | tan_call | cot_call | arcsin_call
-         | arccos_call | arctan_call | sinh_call | cosh_call | tanh_call
-         | sqrt_call | log_call | ln_call
-         | sin_pow | cos_pow | tan_pow | cot_pow | arcsin_pow | arccos_pow | arctan_pow
-         | sinh_pow | cosh_pow | tanh_pow | sqrt_pow | log_pow | ln_pow
+// Каждая функция имеет своё правило
+func_call: sin_call | cos_call | tan_call | cot_call
+         | arcsin_call | arccos_call | arctan_call | arccot_call
+         | sinh_call | cosh_call | tanh_call | coth_call
+         | sqrt_call | log_call | ln_call | exp_call
 
-sin_call: "sin" LPAR expr RPAR
-cos_call: "cos" LPAR expr RPAR
-tan_call: "tan" LPAR expr RPAR
-cot_call: "cot" LPAR expr RPAR
-arcsin_call: "arcsin" LPAR expr RPAR
-arccos_call: "arccos" LPAR expr RPAR
-arctan_call: "arctan" LPAR expr RPAR
-sinh_call: "sinh" LPAR expr RPAR
-cosh_call: "cosh" LPAR expr RPAR
-tanh_call: "tanh" LPAR expr RPAR
-sqrt_call: "sqrt" LPAR expr RPAR
-log_call: "log" LPAR expr RPAR
-ln_call: "ln" LPAR expr RPAR
+sin_call: sin_arg
+sin_arg: sin LPAR expr RPAR | sin VAR | sin GREEK
+sin: "sin"
 
-sin_pow: "sin" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-cos_pow: "cos" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-tan_pow: "tan" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-cot_pow: "cot" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-arcsin_pow: "arcsin" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-arccos_pow: "arccos" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-arctan_pow: "arctan" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-sinh_pow: "sinh" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-cosh_pow: "cosh" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-tanh_pow: "tanh" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-sqrt_pow: "sqrt" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-log_pow: "log" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
-ln_pow: "ln" EXP NUMBER (GREEK | VARIABLE | LPAR expr RPAR)
+cos_call: cos_arg
+cos_arg: cos LPAR expr RPAR | cos VAR | cos GREEK
+cos: "cos"
 
-special: integral | sum_expr | product_expr | diff_expr
+tan_call: tan_arg
+tan_arg: tan LPAR expr RPAR | tan VAR | tan GREEK
+tan: "tan"
+
+cot_call: cot_arg
+cot_arg: cot LPAR expr RPAR | cot VAR | cot GREEK
+cot: "cot"
+
+arcsin_call: arcsin_arg
+arcsin_arg: arcsin LPAR expr RPAR | arcsin VAR | arcsin GREEK
+arcsin: "arcsin"
+
+arccos_call: arccos_arg
+arccos_arg: arccos LPAR expr RPAR | arccos VAR | arccos GREEK
+arccos: "arccos"
+
+arctan_call: arctan_arg
+arctan_arg: arctan LPAR expr RPAR | arctan VAR | arctan GREEK
+arctan: "arctan"
+
+arccot_call: arccot_arg
+arccot_arg: arccot LPAR expr RPAR | arccot VAR | arccot GREEK
+arccot: "arccot"
+
+sinh_call: sinh_arg
+sinh_arg: sinh LPAR expr RPAR | sinh VAR | sinh GREEK
+sinh: "sinh"
+
+cosh_call: cosh_arg
+cosh_arg: cosh LPAR expr RPAR | cosh VAR | cosh GREEK
+cosh: "cosh"
+
+tanh_call: tanh_arg
+tanh_arg: tanh LPAR expr RPAR | tanh VAR | tanh GREEK
+tanh: "tanh"
+
+coth_call: coth_arg
+coth_arg: coth LPAR expr RPAR | coth VAR | coth GREEK
+coth: "coth"
+
+sqrt_call: sqrt_arg
+sqrt_arg: sqrt LPAR expr RPAR | sqrt VAR | sqrt GREEK
+sqrt: "sqrt"
+
+log_call: log_arg
+log_arg: log LPAR expr RPAR | log VAR | log GREEK
+log: "log"
+
+ln_call: ln_arg
+ln_arg: ln LPAR expr RPAR | ln VAR | ln GREEK
+ln: "ln"
+
+exp_call: exp_arg
+exp_arg: exp LPAR expr RPAR | exp VAR | exp GREEK
+exp: "exp"
+
+INF: "inf"
+
+special: integral | sum_expr | product_expr | diff_expr | limit_expr
 
 integral: "integral" ("from" expr "to" expr)? ("of")? integral_body
-integral_body: expr ("d" VARIABLE)?
-sum_expr: "sum" ("from" expr "to" expr)? ("of")? expr
-product_expr: "product" ("from" expr "to" expr)? ("of")? expr
-diff_expr: D VARIABLE
+integral_body: primary ("d" VAR)?
+sum_expr: "sum" ("from" expr "to" expr)? ("of")? primary
+product_expr: "product" ("from" expr "to" expr)? ("of")? primary
+diff_expr: D VAR
+limit_expr: "lim" ("as")? VAR TENDS_TO limit_val limit_expr_tail
+limit_val: NUMBER | VAR | GREEK | INF
+limit_expr_tail: ("of")? primary
+
 D: "d"
 
 LPAR: "("
 RPAR: ")"
 
-VARIABLE: /[a-z]+/
+VAR: /[a-z][a-z0-9]*/
 NUMBER: /\d+(\.\d+)?/
 GREEK: /\\[a-z]+/
 

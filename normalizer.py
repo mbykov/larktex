@@ -79,6 +79,11 @@ class Normalizer:
             elif target == 'all':
                 for synonym in synonyms:
                     self._reverse_map[synonym.lower()] = 'all'
+        
+        # Особая обработка для составных фраз
+        self._special_phrases = [
+            ('квадратный корень из', 'sqrt'),
+        ]
 
     def normalize_text(self, text: str) -> str:
         """
@@ -96,6 +101,10 @@ class Normalizer:
         9. Очистить пробелы
         """
         result = text
+        
+        # 0. Особые составные фразы (перед общей заменой)
+        for phrase, replacement in self._special_phrases:
+            result = re.sub(r'\b' + re.escape(phrase) + r'\b', replacement, result, flags=re.IGNORECASE)
         
         # 1. Обработка степеней: "в квадрате", "в кубе" и т.д.
         for power, synonyms in self.data.get('powers', {}).items():
@@ -191,12 +200,14 @@ class Normalizer:
             else:
                 result = pattern.sub(target, result)
         
-        # 9. Очистка пробелов (сохраняем пробелы вокруг операторов)
-        result = re.sub(r'\s+\^', '^', result)  # Пробел перед ^ удаляем
-        result = re.sub(r'\(\s+', '(', result)  # Пробел после ( удаляем
-        result = re.sub(r'\s+\)', ')', result)  # Пробел перед ) удаляем
+        # 9. all в конце выражения → all * 1
+        result = re.sub(r'\ball\s*$', 'all * 1', result, flags=re.IGNORECASE)
         
-        result = re.sub(r'\s+', ' ', result).strip()  # Остальные пробелы нормализуем
+        # 10. Очистка пробелов
+        result = re.sub(r'\s+\^', '^', result)
+        result = re.sub(r'\(\s+', '(', result)
+        result = re.sub(r'\s+\)', ')', result)
+        result = re.sub(r'\s+', ' ', result).strip()
         
         return result
 
