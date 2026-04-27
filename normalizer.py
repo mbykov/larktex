@@ -40,7 +40,7 @@ class Normalizer:
         categories_to_process = [
             'variables', 'functions', 'operators', 'powers', 
             'numbers', 'special', 'logic', 'relations', 
-            'integrals', 'summation'
+            'integrals', 'summation', 'derivatives', 'misc', 'factorials'
         ]
         
         # Маппинг греческих букв на LaTeX-термины
@@ -105,6 +105,31 @@ class Normalizer:
         # 0. Особые составные фразы (перед общей заменой)
         for phrase, replacement in self._special_phrases:
             result = re.sub(r'\b' + re.escape(phrase) + r'\b', replacement, result, flags=re.IGNORECASE)
+        
+        # 0.1 "дробь ... на ..." → "frac x,y"
+        result = re.sub(r'\bдробь\b\s*(.+?)\s*\bна\b\s*(.+)', lambda m: 'frac ' + m.group(1).strip() + ',' + m.group(2).strip(), result, flags=re.IGNORECASE)
+        
+        # 0.2 "производная" → "deriv", "вторую производную" → "second deriv"
+        result = re.sub(r'\bпроизводная\b\s*\bот\b\s*(.+?)\s*\bпо\b\s*(.+)', lambda m: 'deriv with respect to ' + m.group(2), result, flags=re.IGNORECASE)
+        result = re.sub(r'\bвторую производную\b', 'second deriv', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bчастная\b', 'partial', result, flags=re.IGNORECASE)
+        
+        # 0.4 "ц из n по k" → "binom n k"
+        result = re.sub(r'\b(?:ц|цэ)\s*из\s*(\w+)\s*по\s*(\w+)', lambda m: f'binom {m.group(1)} {m.group(2)}', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bчисло сочетаний из\s*(\w+)\s*по\s*(\w+)', lambda m: f'binom {m.group(1)} {m.group(2)}', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bбиномиальный коэффициент из\s*(\w+)\s*по\s*(\w+)', lambda m: f'binom {m.group(1)} {m.group(2)}', result, flags=re.IGNORECASE)
+        
+        # 0.5 "а из n по k" → "A n k"
+        result = re.sub(r'\b(?:а|а из)\s*из\s*(\w+)\s*по\s*(\w+)', lambda m: f'A {m.group(1)} {m.group(2)}', result, flags=re.IGNORECASE)
+        
+        # 0.6 "n факториал" → "n!"
+        result = re.sub(r'\b(\d+)\s*двойной факториал\b', r'\1!!', result, flags=re.IGNORECASE)
+        result = re.sub(r'\b(\w+)\s*факториал\b', r'\1!', result, flags=re.IGNORECASE)
+        
+        # 0.3 Удалить "от", "по" после deriv
+        result = re.sub(r'\bderiv\b\s*\bот\b', 'deriv', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bпо\b', 'with respect to', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bderiv\b\s*(.+?)\b(по|w\.?r\.?t\.?)\b\s*(.+)', lambda m: 'deriv with respect to ' + m.group(3), result, flags=re.IGNORECASE)
         
         # 1. Обработка степеней: "в квадрате", "в кубе" и т.д.
         for power, synonyms in self.data.get('powers', {}).items():

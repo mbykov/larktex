@@ -11,3 +11,16 @@
 {"input": "предел икс стремится к нулю от синус икс", "expected": "\\lim_{x \\to 0} \\sin(x)"}
 {"input": "косинус альфа", "expected": "\\cos(\\alpha)"}
 {"input": "квадратный корень из икс", "expected": "\\sqrt{x}"}
+{"input": "тангенс икс", "expected": "\\tan(x)"}
+{"input": "котангенс альфа", "expected": "\\cot(\\alpha)"}
+{"input": "арксинус икс", "expected": "\\arc\\sin(x)"}
+{"input": "арккосинус игрек", "expected": "\\arc\\cos(y)"}
+{"input": "бесконечность", "expected": "inf"}
+{"input": "дробь икс на игрек", "expected": "\\frac{x}{y}"}
+{"input": "производная от икс по иксу", "expected": "\\frac{d}{dx}"}
+{"input": "дробь один на два", "expected": "\\frac{1}{2}"}
+{"input": "дробь а на б", "expected": "\\frac{a}{b}"}
+{"input": "эн факториал", "expected": "n!"}
+{"input": "ц из 5 по 2", "expected": "\\binom{5}{2}"}
+{"input": "а из 5 по 2", "expected": "\\frac{5!}{(5 - 2)!}"}
+{"input": "5 двойной факториал", "expected": "5!!"}

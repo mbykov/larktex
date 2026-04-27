@@ -1,0 +1,270 @@
+[
+  {
+    "input": "дробь b минус a на n",
+    "expected": "\\frac{b - a}{n}"
+  },
+  {
+    "input": "дробь пи на 6",
+    "expected": "\\frac{\\pi}{6}"
+  },
+  {
+    "input": "дробь пи на 6 плюс пи",
+    "expected": "\\frac{\\pi}{6} + \\pi"
+  },
+  {
+    "input": "дробь пи на 6 минус пи",
+    "expected": "\\frac{\\pi}{6} - \\pi"
+  },
+  {
+    "input": "дробь пи на два",
+    "expected": "\\frac{\\pi}{2}"
+  },
+  {
+    "input": "дробь 1 на косинус x",
+    "expected": "\\frac{1}{\\cos x}"
+  },
+  {
+    "input": "дробь 1 плюс 1 на 2",
+    "expected": "1 + \\frac{1}{2}"
+  },
+  {
+    "input": "дробь dx на x в степени p",
+    "expected": "\\frac{dx}{x^{p}}"
+  },
+  {
+    "input": "дробь 1 на 1 минус p",
+    "expected": "\\frac{1}{1-p}"
+  },
+  {
+    "input": "дробь пи в квадрате на 6",
+    "expected": "\\frac{\\pi^{2}}{6}"
+  },
+  {
+    "input": "дробь один на n в кубе",
+    "expected": "\\frac{1}{n^{3}}"
+  },
+  {
+    "input": "дробь одна вторая плюс одна третья",
+    "expected": "\\frac{1}{2}+\\frac{1}{3}"
+  },
+  {
+    "input": "дробь d по dx e в степени w",
+    "expected": "\\frac{d}{dx}\\mathbf{e}^{w}"
+  },
+  {
+    "input": "дробь d по dx x в степени x",
+    "expected": "(\\frac{d}{dx}(x^{x}))"
+  },
+  {
+    "input": "дробь 1 плюс 1 на x",
+    "expected": "1+\\frac{1}{x}"
+  },
+  {
+    "input": "дробь 1 плюс 2 на x",
+    "expected": "1+\\frac{2}{x}"
+  },
+  {
+    "input": "дробь e в квадрате на два",
+    "expected": "\\frac{e^{2}}{2}"
+  },
+  {
+    "input": "дробь x на 4",
+    "expected": "\\frac{x}{4}"
+  },
+  {
+    "input": "дробь 2x на 8",
+    "expected": "\\frac{2x}{8}"
+  },
+  {
+    "input": "дробь d D dt равно минус 80",
+    "expected": "\\frac{{d}}{{d}t}D=-80"
+  },
+  {
+    "input": "дробь dv dt равно два",
+    "expected": "\\frac{dv}{dt} = 2"
+  },
+  {
+    "input": "дробь две пятых h",
+    "expected": "\\frac{2}{5}h"
+  },
+  {
+    "input": "дробь минус одна вторая x ноль",
+    "expected": "-\\frac{1}{2}x_{0}"
+  },
+  {
+    "input": "дробь один минус одна вторая",
+    "expected": "1-\\frac{1}{2}"
+  },
+  {
+    "input": "дробь x в квадрате на 2",
+    "expected": "\\frac{x^{2}}{2}"
+  },
+  {
+    "input": "дробь x в степени одна третья",
+    "expected": "x^{\\frac{1}{3}}"
+  },
+  {
+    "input": "дробь один на a плюс один",
+    "expected": "\\frac{1}{a+1}"
+  },
+  {
+    "input": "дробь один на u",
+    "expected": "\\frac{1}{u}"
+  },
+  {
+    "input": "дробь 2b на n",
+    "expected": "\\frac{2b}{n}"
+  },
+  {
+    "input": "дробь одна третья n в кубе",
+    "expected": "\\frac{1}{3}n^{3}"
+  },
+  {
+    "input": "дробь одна третья n в кубе",
+    "expected": "\\frac{1}{3}n^{3}"
+  },
+  {
+    "input": "дробь b минус a на n",
+    "expected": "\\frac{b-a}{n}"
+  },
+  {
+    "input": "дробь один на b минус a",
+    "expected": "\\frac{1}{b-a}"
+  },
+  {
+    "input": "дробь dt на t в квадрате",
+    "expected": "\\frac{dt}{t^{2}}"
+  },
+  {
+    "input": "дробь 1 на t в квадрате",
+    "expected": "\\frac{1}{t^2}"
+  },
+  {
+    "input": "дробь пи на 2a в квадрате",
+    "expected": "\\frac{\\pi}{2a}^{2}"
+  },
+  {
+    "input": "дробь пи на 4",
+    "expected": "\\frac{\\pi}{4}"
+  },
+  {
+    "input": "дробь одна вторая арктангенса",
+    "expected": "\\frac{1}{2}\\arctan "
+  },
+  {
+    "input": "дробь t равно пи на 2",
+    "expected": "{t}=\\frac{\\pi}{2}"
+  },
+  {
+    "input": "дробь d по dt в квадрате",
+    "expected": "(\\frac{d}{dt})^{2}"
+  },
+  {
+    "input": "дробь 2 синус пи на 2",
+    "expected": "2\\sin\\frac{\\pi}{2}"
+  },
+  {
+    "input": "дробь 1 на 1 на x",
+    "expected": "\\frac{1}{1/x}"
+  },
+  {
+    "input": "дробь 1 на x в квадрате",
+    "expected": "\\frac{1}{x^{2}}"
+  },
+  {
+    "input": "дробь y равно 1 на x",
+    "expected": "y=\\frac{1}{x}"
+  },
+  {
+    "input": "дробь 1 на 1 минус a",
+    "expected": "\\frac{1}{1-a}"
+  },
+  {
+    "input": "дробь пи в квадрате на 6",
+    "expected": "\\frac{\\pi^{2}}{6}"
+  },
+  {
+    "input": "дробь 1 на n в кубе",
+    "expected": "\\frac{1}{n^{3}}"
+  },
+  {
+    "input": "дробь 1 на 1 минус x",
+    "expected": "\\frac{1}{1-x}"
+  },
+  {
+    "input": "дробь a1 x в квадрате на 2",
+    "expected": "\\frac{\\mathbb{a_1} x^{2}}{2}"
+  },
+  {
+    "input": "дробь 1 на 1 плюс x",
+    "expected": "\\frac{1}{1+x}"
+  },
+  {
+    "input": "дробь x на 2n плюс 1",
+    "expected": "\\frac{x}{2n+1}"
+  },
+  {
+    "input": "дробь t в квадрате на два",
+    "expected": "\\frac{t^{2}}{2}"
+  },
+  {
+    "input": "дробь один на четыре a",
+    "expected": "\\frac{1}{4a}"
+  },
+  {
+    "input": "дробь два на x в кубе y",
+    "expected": "\\operatorname{\\frac{2}{(x^{3}y)}}"
+  },
+  {
+    "input": "дробь два на xy в кубе",
+    "expected": "\\frac{2}{xy^{3}}"
+  },
+  {
+    "input": "дробь одна вторая от a1u1",
+    "expected": "\\frac{1}{2}a_1u_1"
+  },
+  {
+    "input": "дробь u равно x на a",
+    "expected": "u = \\frac{{x}}{{a}}"
+  },
+  {
+    "input": "дробь du равно один на a dx",
+    "expected": "{d}u = \\frac{1}{a}{d}x"
+  },
+  {
+    "input": "дробь dv равно один на b dy",
+    "expected": "dv = \\frac{1}{b} \\,dy"
+  },
+  {
+    "input": "дробь dr dt умножить на dt",
+    "expected": "\\frac{dr}{dt}\\times dt"
+  },
+  {
+    "input": "дробь z в квадрате на a",
+    "expected": "\\frac{\\mathbb{z}^{2}}{a}"
+  },
+  {
+    "input": "дробь r на t умножить на t",
+    "expected": "\\frac{r}{t}t"
+  },
+  {
+    "input": "дробь 1 на 2c в квадрате",
+    "expected": "\\frac{1}{2c^{2}}"
+  },
+  {
+    "input": "дробь пи на 2",
+    "expected": "\\frac{\\pi}{2}"
+  },
+  {
+    "input": "дробь 3 корень из 3 на 2",
+    "expected": "3\\sqrt{\\frac{3}{2}}"
+  },
+  {
+    "input": "дробь z минус y на n",
+    "expected": "\\frac{z-y}{n}"
+  },
+  {
+    "input": "дробь z минус y на 2n",
+    "expected": "z-\\frac{y}{2n}"
+  }
+]

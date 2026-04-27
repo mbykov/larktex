@@ -168,6 +168,59 @@ class LaTeXTransformer(Transformer):
             return self._handle_tree(child)
         return str(child)
 
+    def frac_expr(self, c):
+        # frac_expr: "frac" expr "," expr
+        # children: [expr_numer, expr_denom]
+        numer = self._child_to_str(c[0])
+        denom = self._child_to_str(c[1])
+        return f"\\frac{{{numer}}}{{{denom}}}"
+
+    def deriv_expr(self, c):
+        # deriv_expr: "deriv" ... | "partial" ... | "second" "deriv" ...
+        # children: [expr?, VAR?] или ["deriv"/"partial"/"second", ...]
+        expr = ""
+        var = ""
+        kind = "deriv"
+        
+        for child in c:
+            s = str(child)
+            if s == 'second':
+                kind = 'second_deriv'
+            elif s in ('partial', 'deriv'):
+                kind = s
+            elif hasattr(child, 'data'):  # это expr
+                expr = self._child_to_str(child)
+            else:  # это VAR
+                var = str(child)
+        
+        if kind == 'second_deriv':
+            return f"\\frac{{d^2}}{{d{var}^2}}{expr}" if expr else f"\\frac{{d^2}}{{d{var}^2}}"
+        elif kind == 'partial':
+            if expr:
+                return f"\\frac{{\\partial}}{{\\partial {var}}}{expr}"
+            return "\\frac{\\partial}{\\partial " + var + "}"
+        else:
+            return f"\\frac{{d}}{{d{var}}}{expr}" if expr else f"\\frac{{d}}{{d{var}}}"  
+
+    def factorial_expr(self, c):
+        # factorial_expr: primary BANG | primary DOUBLE_BANG
+        base = self._child_to_str(c[0])
+        bang = str(c[1])
+        if bang == '!!':
+            return f"{base}!!"
+        return f"{base}!"
+
+    def binom_expr(self, c):
+        # binom_expr: BINOM/ C_SYM/ A_SYM NUMBER NUMBER
+        kind = c[0].type if hasattr(c[0], 'type') else str(c[0])
+        n = str(c[1])
+        k = str(c[2])
+        
+        if kind == 'A_SYM':
+            return f"\\frac{{{n}!}}{{({n} - {k})!}}"
+        else:  # binom or C
+            return f"\\binom{{{n}}}{{{k}}}"
+
     def integral(self, c):
         expr = lower = upper = diff = ""
         i = 0

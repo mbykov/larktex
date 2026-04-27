@@ -99,7 +99,7 @@ exp: "exp"
 
 INF: "inf"
 
-special: integral | sum_expr | product_expr | diff_expr | limit_expr
+special: integral | sum_expr | product_expr | diff_expr | limit_expr | frac_expr | deriv_expr | factorial_expr | binom_expr
 
 integral: "integral" ("from" expr "to" expr)? ("of")? integral_body
 integral_body: primary ("d" VAR)?
@@ -110,10 +110,31 @@ limit_expr: "lim" ("as")? VAR TENDS_TO limit_val limit_expr_tail
 limit_val: NUMBER | VAR | GREEK | INF
 limit_expr_tail: ("of")? primary
 
+// Дроби
+frac_expr: "frac" LPAR expr "," expr RPAR | "frac" expr "," expr
+
+// Производные
+deriv_expr: "deriv" ("with" "respect" "to")? VAR | "partial" ("with" "respect" "to")? VAR | "second" "deriv" ("with" "respect" "to")? VAR
+
+// Факториалы
+factorial_expr: primary BANG | primary DOUBLE_BANG
+DOUBLE_BANG: "!!"
+BANG: "!"
+
+// Биномиальные коэффициенты и размещения
+binom_expr: BINOM NUMBER NUMBER
+          | C_SYM NUMBER NUMBER
+          | A_SYM NUMBER NUMBER
+
+BINOM: "binom"
+C_SYM: "C"
+A_SYM: "A"
+
 D: "d"
 
 LPAR: "("
 RPAR: ")"
+COMMA: ","
 
 VAR: /[a-z][a-z0-9]*/
 NUMBER: /\d+(\.\d+)?/
