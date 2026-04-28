@@ -2,26 +2,27 @@
 """
 Normalizer — преобразует русский математический текст в латиницу.
 
-Читает только i18n/ru.json.
-НЕ добавляет скобки! Только заменяет термины:
-- "всё"/"все" → "all"
-- "открыть скобку" → "(", "закрыть скобку" → ")"
+Структура:
+    DictionaryLoader — загрузка словарей
+    TextNormalizer — замена слов по словарю
+    MathIslandExtractor — выделение мат. фрагментов
+    Normalizer — обёртка для координации
 """
 
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Set
 
 
-class Normalizer:
-    """Нормализатор математического текста."""
+class DictionaryLoader:
+    """Загрузка и управление словарями."""
 
     def __init__(self, i18n_dir: str = "i18n"):
         self.i18n_dir = Path(i18n_dir)
         self.data: Dict[str, Any] = {}
         self._reverse_map: Dict[str, str] = {}
-        
+        self._special_phrases: List[Tuple[str, str]] = []
         self._load_resources()
 
     def _load_resources(self) -> None:
@@ -43,7 +44,6 @@ class Normalizer:
             'integrals', 'summation', 'derivatives', 'misc', 'factorials'
         ]
         
-        # Маппинг греческих букв на LaTeX-термины
         greek_to_latex = {
             'α': '\\alpha', 'β': '\\beta', 'γ': '\\gamma', 'δ': '\\delta',
             'ε': '\\epsilon', 'ζ': '\\zeta', 'η': '\\eta', 'θ': '\\theta',
@@ -57,35 +57,73 @@ class Normalizer:
             items = self.data.get(category, {})
             for target, synonyms in items.items():
                 for synonym in synonyms:
-                    # Если цель - греческая буква, мапим на LaTeX
                     if target in greek_to_latex:
                         self._reverse_map[synonym.lower()] = greek_to_latex[target]
                     else:
                         self._reverse_map[synonym.lower()] = target
         
-        # Особая обработка misc: open_paren -> '(', close_paren -> ')'
         misc_items = self.data.get('misc', {})
         for target, synonyms in misc_items.items():
             if target == 'open_paren':
                 for synonym in synonyms:
-                    # Явные команды открывающей скобки
                     if synonym.lower() in ['открыть скобку', 'открыть']:
                         self._reverse_map[synonym.lower()] = '('
             elif target == 'close_paren':
                 for synonym in synonyms:
-                    # Явные команды закрывающей скобки
                     if synonym.lower() in ['закрыть скобку', 'закрыть']:
                         self._reverse_map[synonym.lower()] = ')'
             elif target == 'all':
                 for synonym in synonyms:
                     self._reverse_map[synonym.lower()] = 'all'
         
-        # Особая обработка для составных фраз
         self._special_phrases = [
             ('квадратный корень из', 'sqrt'),
         ]
 
-    def normalize_text(self, text: str) -> str:
+    def get_reverse_map(self) -> Dict[str, str]:
+        """Возвращает обратное отображение синонимов."""
+        return self._reverse_map
+
+    def get_special_phrases(self) -> List[Tuple[str, str]]:
+        """Возвращает особые составные фразы."""
+        return self._special_phrases
+
+    def get_powers(self) -> Dict[str, List[str]]:
+        """Возвращает словарь степеней."""
+        return self.data.get('powers', {})
+
+    def get_data(self) -> Dict[str, Any]:
+        """Возвращает загруженные данные."""
+        return self.data
+
+    def get_math_keywords(self) -> Set[str]:
+        """Возвращает набор математических ключевых слов."""
+        math_keywords = set()
+        excluded_categories = {'noise_words', 'stop_words', 'misc', 'prepositions'}
+        
+        categories = ['variables', 'functions', 'operators', 'integrals', 'logic', 'relations', 'numbers', 'special', 'powers']
+        for category in categories:
+            if category in excluded_categories:
+                continue
+            for target, synonyms in self.data.get(category, {}).items():
+                math_keywords.update(synonyms)
+        
+        for target, synonyms in self.data.get('variables', {}).items():
+            if len(target) == 1 and target.isalpha():
+                math_keywords.add(target.lower())
+        
+        return math_keywords
+
+
+class TextNormalizer:
+    """Только замена слов по словарю."""
+
+    def __init__(self, dictionary_loader: DictionaryLoader):
+        self.loader = dictionary_loader
+        self._reverse_map = dictionary_loader.get_reverse_map()
+        self._special_phrases = dictionary_loader.get_special_phrases()
+
+    def normalize(self, text: str) -> str:
         """
         Нормализовать текст: заменить все синонимы на латиницу.
         
@@ -102,77 +140,54 @@ class Normalizer:
         """
         result = text
         
-        # 0. Особые составные фразы (перед общей заменой)
         for phrase, replacement in self._special_phrases:
             result = re.sub(r'\b' + re.escape(phrase) + r'\b', replacement, result, flags=re.IGNORECASE)
         
-        # 0.1 "дробь ... на ..." → "frac x,y"
         result = re.sub(r'\bдробь\b\s*(.+?)\s*\bна\b\s*(.+)', lambda m: 'frac ' + m.group(1).strip() + ',' + m.group(2).strip(), result, flags=re.IGNORECASE)
         
-        # 0.2 "производная" → "deriv", "вторую производную" → "second deriv"
         result = re.sub(r'\bпроизводная\b\s*\bот\b\s*(.+?)\s*\bпо\b\s*(.+)', lambda m: 'deriv with respect to ' + m.group(2), result, flags=re.IGNORECASE)
         result = re.sub(r'\bвторую производную\b', 'second deriv', result, flags=re.IGNORECASE)
         result = re.sub(r'\bчастная\b', 'partial', result, flags=re.IGNORECASE)
         
-        # 0.4 "ц из n по k" → "binom n k"
         result = re.sub(r'\b(?:ц|цэ)\s*из\s*(\w+)\s*по\s*(\w+)', lambda m: f'binom {m.group(1)} {m.group(2)}', result, flags=re.IGNORECASE)
         result = re.sub(r'\bчисло сочетаний из\s*(\w+)\s*по\s*(\w+)', lambda m: f'binom {m.group(1)} {m.group(2)}', result, flags=re.IGNORECASE)
         result = re.sub(r'\bбиномиальный коэффициент из\s*(\w+)\s*по\s*(\w+)', lambda m: f'binom {m.group(1)} {m.group(2)}', result, flags=re.IGNORECASE)
         
-        # 0.5 "а из n по k" → "A n k"
         result = re.sub(r'\b(?:а|а из)\s*из\s*(\w+)\s*по\s*(\w+)', lambda m: f'A {m.group(1)} {m.group(2)}', result, flags=re.IGNORECASE)
         
-        # 0.6 "n факториал" → "n!"
         result = re.sub(r'\b(\d+)\s*двойной факториал\b', r'\1!!', result, flags=re.IGNORECASE)
         result = re.sub(r'\b(\w+)\s*факториал\b', r'\1!', result, flags=re.IGNORECASE)
         
-        # 0.3 Удалить "от", "по" после deriv
         result = re.sub(r'\bderiv\b\s*\bот\b', 'deriv', result, flags=re.IGNORECASE)
         result = re.sub(r'\bпо\b', 'with respect to', result, flags=re.IGNORECASE)
         result = re.sub(r'\bderiv\b\s*(.+?)\b(по|w\.?r\.?t\.?)\b\s*(.+)', lambda m: 'deriv with respect to ' + m.group(3), result, flags=re.IGNORECASE)
         
-        # 1. Обработка степеней: "в квадрате", "в кубе" и т.д.
-        for power, synonyms in self.data.get('powers', {}).items():
+        for power, synonyms in self.loader.get_powers().items():
             for synonym in synonyms:
                 if 'в ' in synonym or synonym.startswith('в '):
-                    pattern = re.compile(
-                        r'\b' + re.escape(synonym) + r'\b',
-                        re.IGNORECASE
-                    )
+                    pattern = re.compile(r'\b' + re.escape(synonym) + r'\b', re.IGNORECASE)
                     result = pattern.sub(f'^{power}', result)
         
-        # 1.1 Обработка "квадрат" и "куб" без предлога "в" (для конструкций типа "синус квадрат")
-        # "квадрат", "в квадрате" -> ^2
         pattern = re.compile(r'\bквадрат\b', re.IGNORECASE)
         result = pattern.sub('^2', result)
-        # "куб" -> ^3
         pattern = re.compile(r'\bкуб\b', re.IGNORECASE)
         result = pattern.sub('^3', result)
         
-        # 2. "всё" / "все" → "all" (просто замена слова, БЕЗ скобок)
         result = re.sub(r'\bвсё\b', ' all ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bвсе\b', ' all ', result, flags=re.IGNORECASE)
         
-        # 3. "делить на" → "/"
         result = re.sub(r'\bделить на\b', ' / ', result, flags=re.IGNORECASE)
         
-        # 4. "де" → "d" (дифференциал: "де икс" → "d x")
         result = re.sub(r'\bде\b', ' d ', result, flags=re.IGNORECASE)
         
-        # 5. Удалить предлоги (кроме "в" — он может быть переменной)
         for pred in ['от', 'из', 'на', 'до']:
             result = re.sub(r'\b' + pred + r'\b', ' ', result, flags=re.IGNORECASE)
         
-        # 6. Обработка явных скобок (только если пользователь сказал "скобка")
         result = re.sub(r'\bоткрывающая скобка\b', ' ( ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bзакрывающая скобка\b', ' ) ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bоткрыть\b', ' ( ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bзакрыть\b', ' ) ', result, flags=re.IGNORECASE)
         
-        # 6.1 Обработка простого слова "скобка":
-        # - первая "скобка" → "(", последняя → ")"
-        # - внутренние: нечетные → "(", четные → ")"
-        # - ошибка если: первая не "(", последняя не ")", нечетное число скобок
         paren_pattern = re.compile(r'\bскобка\b', re.IGNORECASE)
         paren_matches = list(paren_pattern.finditer(result))
         
@@ -183,29 +198,25 @@ class Normalizer:
             if total_parens % 2 == 1:
                 raise ValueError(f"Нечетное число скобок: {total_parens}")
             
-            # Заменяем: нечетные (0, 2, 4...) → "(", четные (1, 3, 5...) → ")"
             new_result = []
             last_end = 0
             for i, (start, end) in enumerate(paren_positions):
                 new_result.append(result[last_end:start])
-                if i % 2 == 0:  # 0, 2, 4... → открывающая
+                if i % 2 == 0:
                     new_result.append(' ( ')
-                else:  # 1, 3, 5... → закрывающая
+                else:
                     new_result.append(' ) ')
                 last_end = end
             new_result.append(result[last_end:])
             result = ''.join(new_result)
         
-        # 7. "в" как переменная → "v"
         result = re.sub(r'\bв\b', ' v ', result, flags=re.IGNORECASE)
         
-        # 8. Длинные синонимы первыми
         sorted_synonyms = sorted(self._reverse_map.keys(), key=len, reverse=True)
         
         for synonym in sorted_synonyms:
             target = self._reverse_map[synonym]
             
-            # Пропускаем уже обработанные
             if synonym in ['открыть скобку', 'закрыть скобку', 'открыть', 'закрыть']:
                 continue
             if 'в ' in synonym:
@@ -215,20 +226,14 @@ class Normalizer:
             if len(synonym) == 1 and synonym.isascii() and synonym.isalpha():
                 continue
             
-            pattern = re.compile(
-                r'\b' + re.escape(synonym) + r'\b',
-                re.IGNORECASE
-            )
-            # Для LaTeX терминов используем lambda чтобы избежать интерпретации backslash
+            pattern = re.compile(r'\b' + re.escape(synonym) + r'\b', re.IGNORECASE)
             if target.startswith('\\'):
                 result = pattern.sub(lambda m: target, result)
             else:
                 result = pattern.sub(target, result)
         
-        # 9. all в конце выражения → all * 1
         result = re.sub(r'\ball\s*$', 'all * 1', result, flags=re.IGNORECASE)
         
-        # 10. Очистка пробелов
         result = re.sub(r'\s+\^', '^', result)
         result = re.sub(r'\(\s+', '(', result)
         result = re.sub(r'\s+\)', ')', result)
@@ -236,31 +241,18 @@ class Normalizer:
         
         return result
 
-    def extract_math_islands(self, text: str) -> List[Tuple[str, bool]]:
+
+class MathIslandExtractor:
+    """Выделение математических фрагментов из текста."""
+
+    def __init__(self, dictionary_loader: DictionaryLoader):
+        self.loader = dictionary_loader
+        self._math_keywords = dictionary_loader.get_math_keywords()
+        self._sorted_keywords = sorted(self._math_keywords, key=len, reverse=True)
+
+    def extract(self, text: str) -> List[Tuple[str, bool]]:
         """Выделить математические сегменты из текста."""
-        # Сначала разбить по пунктуации
         first_split = re.split(r'([,.:;])', text)
-        
-        # Ключевые слова для определения мат-островов (исключаем noise_words, misc)
-        math_keywords = set()
-        # Исключаем эти категории из мат-ключей
-        excluded_categories = {'noise_words', 'stop_words', 'misc', 'prepositions'}
-        
-        categories = ['variables', 'functions', 'operators', 'integrals', 'logic', 'relations', 'numbers', 'special', 'powers']
-        for category in categories:
-            if category in excluded_categories:
-                continue
-            for target, synonyms in self.data.get(category, {}).items():
-                math_keywords.update(synonyms)
-        
-        # Добавляем одиночные буквы из variables как мат-ключи (для выделения островов)
-        for target, synonyms in self.data.get('variables', {}).items():
-            # Добавляем односимвольные переменные
-            if len(target) == 1 and target.isalpha():
-                math_keywords.add(target.lower())
-        
-        # Сортируем ключевые слова по длине (длинные первыми)
-        sorted_keywords = sorted(math_keywords, key=len, reverse=True)
         
         result = []
         
@@ -268,40 +260,32 @@ class Normalizer:
             if not segment.strip():
                 continue
             
-            # Если это разделитель — не математика
             if segment.strip() in ',:.;':
                 result.append((segment, False))
                 continue
             
             segment_lower = segment.lower()
             
-            # Найти все позиции математических ключевых слов (полные слова)
             math_spans = []
-            for keyword in sorted_keywords:
+            for keyword in self._sorted_keywords:
                 keyword_lower = keyword.lower()
-                # Используем \b для границ слов
                 pattern = re.compile(r'\b' + re.escape(keyword_lower) + r'\b')
                 for match in pattern.finditer(segment_lower):
                     math_spans.append((match.start(), match.end()))
             
             if not math_spans:
-                # Нет математики — весь сегмент как текст
                 result.append((segment, False))
                 continue
             
-            # Сортируем и объединяем перекрывающиеся спаны
             math_spans.sort()
             merged_spans = [math_spans[0]]
             for span in math_spans[1:]:
                 last = merged_spans[-1]
-                # Объединяем если перекрываются или смежные
                 if span[0] <= last[1]:
                     merged_spans[-1] = (last[0], max(last[1], span[1]))
                 else:
                     merged_spans.append(span)
             
-            # Разбиваем сегмент: объединяем мат-фрагменты в один остров,
-            # если между ними только пробелы
             pos = 0
             in_math = False
             math_start = 0
@@ -309,8 +293,6 @@ class Normalizer:
             
             for span_start, span_end in merged_spans:
                 if not in_math:
-                    # Начинаем новый мат-остров
-                    # Если есть текст перед мат-фрагментом — добавляем его
                     if pos < span_start:
                         text_before = segment[pos:span_start]
                         if text_before.strip():
@@ -318,23 +300,19 @@ class Normalizer:
                     in_math = True
                     math_start = span_start
                 
-                # Расширяем мат-остров (включая промежуточный текст)
                 math_end = span_end
                 pos = span_end
             
-            # Добавляем весь мат-остров с промежуточным текстом
             if in_math:
                 math_island = segment[math_start:math_end]
                 result.append((math_island, True))
         
-        # Объединяем смежные TEXT-фрагменты
         if len(result) > 1:
             merged_result = []
             i = 0
             while i < len(result):
                 seg, is_math = result[i]
                 if not is_math:
-                    # Начинаем TEXT-блок, объединяем все смежные TEXT-фрагменты
                     combined_text = seg
                     i += 1
                     while i < len(result) and not result[i][1]:
@@ -348,19 +326,41 @@ class Normalizer:
         
         return result
 
+
+class Normalizer:
+    """Обёртка для координации компонентов нормализации."""
+
+    def __init__(self, i18n_dir: str = "i18n"):
+        self.loader = DictionaryLoader(i18n_dir)
+        self.text_normalizer = TextNormalizer(self.loader)
+        self.island_extractor = MathIslandExtractor(self.loader)
+
     def process(self, text: str) -> str:
         """Полная обработка текста с выделением островов."""
-        islands = self.extract_math_islands(text)
+        islands = self.island_extractor.extract(text)
         
         result_parts = []
         for segment, is_math in islands:
             if is_math:
-                normalized = self.normalize_text(segment)
+                normalized = self.text_normalizer.normalize(segment)
                 result_parts.append(normalized)
             else:
                 result_parts.append(segment)
         
         return ''.join(result_parts)
+
+    def normalize(self, text: str) -> str:
+        """Нормализовать текст без выделения островов."""
+        return self.text_normalizer.normalize(text)
+
+    # Методы-обёртки для совместимости с существующим кодом
+    def normalize_text(self, text: str) -> str:
+        """Алиас для normalize()."""
+        return self.normalize(text)
+    
+    def extract_math_islands(self, text: str) -> List[Tuple[str, bool]]:
+        """Алиас для island_extractor.extract()."""
+        return self.island_extractor.extract(text)
 
 
 def main():
