@@ -1,0 +1,30 @@
+{"input": "Цэ из n по k", "expected": "\binom{n}{k}"}
+{"input": "Число сочетаний из n по k", "expected": "\binom{n}{k}"}
+{"input": "Биномиальный коэффициент из n по k", "expected": "\binom{n}{k}"}
+{"input": "Ноль факториал равно единице", "expected": "0! = 1"}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+
+
+{"input": "Цэ из n по k равно n факториал, делённое на k факториал, умноженный на (n−k) факториал", "expected": "(nk)=n!k!(n−k)!(kn​)=k!(n−k)!n!​"}
+{"input": "Эн факториал равно единица, умноженная на два, умноженная на три, и так далее до эн", "expected": "n! = 1 \times 2 \times 3 \times \dots \times n"}
+{"input": "Цэ из эн по ка равно дробь: в числителе эн факториал, в знаменателе ка факториал, умноженный на (эн минус ка) факториал", "expected": "\binom{n}{k} = \frac{n!}{k! \cdot (n-k)!}"}
+
+{"input": "Число перестановок из эн элементов равно эн факториал", "expected": "P_n = n!"}
+{"input": "«Пэ из эн равно эн факториал»", "expected": "P_n = n!"}
+
+{"input": "А из эн по ка равно эн факториал, делённое на (эн минус ка) факториал", "expected": "A_n^k = \frac{n!}{(n-k)!}"}
+{"input": "Число размещений из эн по ка", "expected": "A_n^k = \frac{n!}{(n-k)!}"}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+

@@ -1,0 +1,31 @@
+{"input": "а разделить на бэ равно цэ", "expected": "a \div b = c"}
+{"input": "Сумма икс и игрек, разделённая на два, равна дроби: в числителе икс плюс игрек, в знаменателе два", "expected": "(x + y) \div 2 = \frac{x+y}{2}"}
+{"input": "Десять разделить на три равно три, остаток один", "expected": "10 \div 3 = 3 \text{ (остаток } 1)"}
+{"input": "Сто разделить на пять разделить на два равно десять", "expected": "100 \div 5 \div 2 = 10"}
+{"input": "а делённое на бэ", "expected": "a/b"}
+{"input": "дробь: числитель а, знаменатель бэ", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+{"input": "", "expected": ""}
+v
