@@ -1,0 +1,145 @@
+start: expr
+
+expr: comparison
+comparison: additive (EQ additive | NEQ additive | LT additive | GT additive | LE additive | GE additive | SIMILAR additive | APPROX additive | PROP additive | EQUIV additive)?
+
+EQ: "="
+NEQ: "!="
+LT: "<"
+GT: ">"
+LE: "<="
+GE: ">="
+SIMILAR: "similar"
+APPROX: "approx"
+PROP: "prop"
+EQUIV: "equiv"
+TENDS_TO: "tends_to"
+
+additive: additive PLUS multiplicative | additive MINUS multiplicative | multiplicative
+PLUS: "+"
+MINUS: "-"
+multiplicative: multiplicative MUL power | multiplicative DIV power | power
+MUL: "*"
+DIV: "/"
+power: primary EXP power | primary
+EXP: "^"
+
+primary: NUMBER | GREEK | LPAR expr RPAR | special | UNARY primary | VAR | func_call
+UNARY: "-" | "+"
+ALL: "all"
+
+// Каждая функция имеет своё правило
+func_call: sin_call | cos_call | tan_call | cot_call
+         | arcsin_call | arccos_call | arctan_call | arccot_call
+         | sinh_call | cosh_call | tanh_call | coth_call
+         | sqrt_call | log_call | ln_call | exp_call
+
+sin_call: sin_arg
+sin_arg: sin LPAR expr RPAR | sin VAR | sin GREEK
+sin: "sin"
+
+cos_call: cos_arg
+cos_arg: cos LPAR expr RPAR | cos VAR | cos GREEK
+cos: "cos"
+
+tan_call: tan_arg
+tan_arg: tan LPAR expr RPAR | tan VAR | tan GREEK
+tan: "tan"
+
+cot_call: cot_arg
+cot_arg: cot LPAR expr RPAR | cot VAR | cot GREEK
+cot: "cot"
+
+arcsin_call: arcsin_arg
+arcsin_arg: arcsin LPAR expr RPAR | arcsin VAR | arcsin GREEK
+arcsin: "arcsin"
+
+arccos_call: arccos_arg
+arccos_arg: arccos LPAR expr RPAR | arccos VAR | arccos GREEK
+arccos: "arccos"
+
+arctan_call: arctan_arg
+arctan_arg: arctan LPAR expr RPAR | arctan VAR | arctan GREEK
+arctan: "arctan"
+
+arccot_call: arccot_arg
+arccot_arg: arccot LPAR expr RPAR | arccot VAR | arccot GREEK
+arccot: "arccot"
+
+sinh_call: sinh_arg
+sinh_arg: sinh LPAR expr RPAR | sinh VAR | sinh GREEK
+sinh: "sinh"
+
+cosh_call: cosh_arg
+cosh_arg: cosh LPAR expr RPAR | cosh VAR | cosh GREEK
+cosh: "cosh"
+
+tanh_call: tanh_arg
+tanh_arg: tanh LPAR expr RPAR | tanh VAR | tanh GREEK
+tanh: "tanh"
+
+coth_call: coth_arg
+coth_arg: coth LPAR expr RPAR | coth VAR | coth GREEK
+coth: "coth"
+
+sqrt_call: sqrt_arg
+sqrt_arg: sqrt LPAR expr RPAR | sqrt VAR | sqrt GREEK
+sqrt: "sqrt"
+
+log_call: log_arg
+log_arg: log LPAR expr RPAR | log VAR | log GREEK
+log: "log"
+
+ln_call: ln_arg
+ln_arg: ln LPAR expr RPAR | ln VAR | ln GREEK
+ln: "ln"
+
+exp_call: exp_arg
+exp_arg: exp LPAR expr RPAR | exp VAR | exp GREEK
+exp: "exp"
+
+INF: "inf"
+
+special: integral | sum_expr | product_expr | diff_expr | limit_expr | frac_expr | deriv_expr | factorial_expr | binom_expr
+
+integral: "integral" ("from" expr "to" expr)? ("of")? integral_body
+integral_body: expr D? VAR?
+sum_expr: "sum" ("from" expr "to" expr)? ("of")? primary
+product_expr: "product" ("from" expr "to" expr)? ("of")? primary
+diff_expr: D VAR
+limit_expr: "lim" ("as")? VAR TENDS_TO limit_val limit_expr_tail
+limit_val: NUMBER | VAR | GREEK | INF
+limit_expr_tail: ("of")? primary
+
+// Дроби
+frac_expr: "frac" LPAR expr COMMA expr RPAR | "frac" expr COMMA expr
+
+// Производные
+deriv_expr: "deriv" ("with" "respect" "to")? VAR | "partial" ("with" "respect" "to")? VAR | "second" "deriv" ("with" "respect" "to")? VAR
+
+// Факториалы
+factorial_expr: primary BANG | primary DOUBLE_BANG
+DOUBLE_BANG: "!!"
+BANG: "!"
+
+// Биномиальные коэффициенты и размещения
+binom_expr: BINOM NUMBER NUMBER
+          | C_SYM NUMBER NUMBER
+          | A_SYM NUMBER NUMBER
+
+BINOM: "binom"
+C_SYM: "C"
+A_SYM: "A"
+
+D: "d"
+
+LPAR: "("
+RPAR: ")"
+COMMA: ","
+
+VAR: /[a-z][a-z0-9]*/
+NUMBER: /\d+(\.\d+)?/
+GREEK: /\\[a-z]+/
+
+%import common.WS
+%ignore WS
