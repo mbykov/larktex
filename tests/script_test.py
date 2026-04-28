@@ -85,13 +85,10 @@ def main():
         normalized = engine.normalizer.normalize_text(input_text)
 
         try:
-            parsed = engine.parser.parse(normalized)
-            from design import design
-            latex, error = design(parsed)
-            if error:
-                actual = f"# Design error: {error}\n{parsed}"
-            else:
-                actual = latex
+            ast = engine.parser.parse(normalized)
+            from lib.generator import Generator
+            gen = Generator()
+            actual = gen.generate(ast)
         except Exception as e:
             print(f"\n{RED}--- Тест (строка {line_num}) ---{RESET}")
             print(f"  Input:      {input_text!r}")
@@ -110,7 +107,7 @@ def main():
             print(f"\n{RED}--- Тест (строка {line_num}) ---{RESET}")
             print(f"  Input:      {input_text!r}")
             print(f"  Normalized: {normalized!r}")
-            print(f"  Parsed:     {parsed!r}")
+            print(f"  AST:        {ast!r}")
             print(f"  Expected:   {expected!r}")
             print(f"  Actual:     {actual!r}")
             

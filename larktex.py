@@ -26,7 +26,7 @@ def _get_normalizer():
     """Ленивая инициализация Normalizer."""
     global _normalizer
     if _normalizer is None:
-        from normalizer import Normalizer
+        from lib.normalizer import Normalizer
         _normalizer = Normalizer(i18n_dir=str(ROOT_DIR / "i18n"))
     return _normalizer
 

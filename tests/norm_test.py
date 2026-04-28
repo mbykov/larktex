@@ -9,7 +9,7 @@ from pathlib import Path
 # Добавить корень проекта в путь
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from normalizer import Normalizer
+from lib.normalizer import Normalizer
 
 
 # Цвета для вывода
