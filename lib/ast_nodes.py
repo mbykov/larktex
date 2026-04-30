@@ -84,6 +84,11 @@ class BinOpNode:
             if len(exp) == 1 and exp.isdigit():
                 return f"{left}^{exp}"
             return f"{left}^{{{exp}}}"
+        elif self.op == '*':
+            # Особый случай: d * x → d x (дифференциал)
+            if isinstance(self.left, VarNode) and self.left.name == 'd':
+                return f"d {right}"
+            return f"{left} * {right}"
         else:
             return f"{left} {self.op} {right}"
 
@@ -149,9 +154,23 @@ class PowNode:
     def to_latex(self) -> str:
         base_latex = self.base.to_latex()
         exp_latex = self.exp.to_latex()
-        if len(exp_latex) == 1 and exp_latex.isdigit():
-            return f"{base_latex}^{exp_latex}"
-        return f"{{{base_latex}}}^{{{exp_latex}}}"
+        # Всегда использовать фигурные скобки для экспоненты
+        # Даже если это одна цифра: a^{2} вместо a^2
+        return f"{base_latex}^{{{exp_latex}}}"
+
+
+@dataclass
+class SqrtNode:
+    """Корень: sqrt[degree]{radicand}"""
+    radicand: 'ASTNode'
+    degree: Optional['ASTNode'] = None
+
+    def to_latex(self) -> str:
+        radicand_latex = self.radicand.to_latex()
+        if self.degree:
+            degree_latex = self.degree.to_latex()
+            return rf"\sqrt[{degree_latex}]{{{radicand_latex}}}"
+        return rf"\sqrt{{{radicand_latex}}}"
 
 
 @dataclass
@@ -310,7 +329,7 @@ class AllNode:
 ASTNode = Union[
     NumberNode, VarNode, GreekNode, InfinityNode,
     UnaryOpNode, BinOpNode, RelationNode, ParensNode,
-    FuncCallNode, PowNode, FracNode, FactorialNode, BinomNode,
+    FuncCallNode, PowNode, SqrtNode, FracNode, FactorialNode, BinomNode,
     LimitNode, DerivNode, SecondDerivNode, PartialDerivNode,
     IntegralNode, SumNode, ProductNode, AllNode,
 ]

@@ -21,10 +21,17 @@ MINUS: "-"
 multiplicative: multiplicative MUL power | multiplicative DIV power | power
 MUL: "*"
 DIV: "/"
-power: primary EXP power | primary
+
+power: primary EXP power | mult_seq
+mult_seq: primary+
 EXP: "^"
 
-primary: NUMBER | GREEK | LPAR expr RPAR | special | UNARY primary | VAR | func_call
+// Фигурные скобки для экспоненты
+primary: NUMBER | GREEK | LPAR expr RPAR | special | UNARY primary | VAR | func_call | curly_group
+curly_group: CURLY_LEFT expr CURLY_RIGHT
+CURLY_LEFT: "{"
+CURLY_RIGHT: "}"
+
 UNARY: "-" | "+"
 ALL: "all"
 
@@ -82,9 +89,11 @@ coth_call: coth_arg
 coth_arg: coth LPAR expr RPAR | coth VAR | coth GREEK
 coth: "coth"
 
-sqrt_call: sqrt_arg
-sqrt_arg: sqrt LPAR expr RPAR | sqrt VAR | sqrt GREEK
+// sqrt с поддержкой степени: sqrt [N] radicand или sqrt radicand
+// Используем SQBRACKET для степени, primary для подкоренного выражения
+sqrt_call: sqrt SQBRACKET expr SQBRACKET primary | sqrt primary
 sqrt: "sqrt"
+SQBRACKET: "[" | "]"
 
 log_call: log_arg
 log_arg: log LPAR expr RPAR | log VAR | log GREEK
@@ -100,13 +109,15 @@ exp: "exp"
 
 INF: "inf"
 
-special: integral | sum_expr | product_expr | diff_expr | limit_expr | frac_expr | deriv_expr | factorial_expr | binom_expr
+special: integral | sum_expr | product_expr | limit_expr | frac_expr | deriv_expr | factorial_expr | binom_expr
 
 integral: "integral" ("from" expr "to" expr)? ("of")? integral_body
-integral_body: expr D? VAR?
+integral_body: expr diff_part?
+diff_part: DIFF_D VAR
+DIFF_D: "d"
+
 sum_expr: "sum" ("from" expr "to" expr)? ("of")? primary
 product_expr: "product" ("from" expr "to" expr)? ("of")? primary
-diff_expr: D VAR
 limit_expr: "lim" ("as")? VAR TENDS_TO limit_val limit_expr_tail
 limit_val: NUMBER | VAR | GREEK | INF
 limit_expr_tail: ("of")? primary
@@ -131,7 +142,7 @@ BINOM: "binom"
 C_SYM: "C"
 A_SYM: "A"
 
-D: "d"
+# D: "d"  # Убрано: d теперь парсится как VAR
 
 LPAR: "("
 RPAR: ")"

@@ -33,13 +33,20 @@ def process_request(data: dict) -> dict:
         return {"latex": "", "status": "error", "message": "No input provided"}
     
     try:
-        latex = engine.process(input_text)
+        # Нормализация
+        normalized = engine.normalizer.normalize_text(input_text)
+        # Парсинг и генерация
+        ast = engine.parser.parse(normalized)
+        from lib.generator import Generator
+        g = Generator()
+        latex = g.generate(ast)
+        
         # Проверяем, нет ли ошибок парсинга
         if latex.startswith('# Parse error:') or latex.startswith('# Design error:'):
-            return {"latex": latex, "status": "error", "message": latex.split('\n')[0]}
-        return {"latex": latex, "status": "ok"}
+            return {"latex": latex, "status": "error", "normalized": normalized, "message": latex.split('\n')[0]}
+        return {"latex": latex, "status": "ok", "normalized": normalized}
     except Exception as e:
-        return {"latex": "", "status": "error", "message": str(e)}
+        return {"latex": "", "status": "error", "normalized": normalized if 'normalized' in dir() else "", "message": str(e)}
 
 
 def main():
