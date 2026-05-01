@@ -1,7 +1,9 @@
+{"input": "корень из а плюс б", "expected": "\\sqrt{a} + b"}
+{"input": "икс в квадрате", "expected": "x^{2}"}
+{"input": "квадратный корень из икс", "expected": "\\sqrt{x}"}
+
 {"input": "синус икс", "expected": "\\sin(x)"}
 {"input": "икс равно игрек", "expected": "x = y"}
-{"input": "корень из а плюс б", "expected": "\\sqrt{a} + b"}
-{"input": "икс в квадрате", "expected": "x^2"}
 {"input": "мю равно хи", "expected": "\\mu = \\chi"}
 {"input": "интеграл от икс де икс", "expected": "\\int x \\, d x"}
 {"input": "синус икс плюс косинус игрек", "expected": "\\sin(x) + \\cos(y)"}
@@ -10,7 +12,6 @@
 {"input": "предел икс стремится к бесконечности от экспонента икс", "expected": "\\lim_{x \\to inf} \\exp(x)"}
 {"input": "предел икс стремится к нулю от синус икс", "expected": "\\lim_{x \\to 0} \\sin(x)"}
 {"input": "косинус альфа", "expected": "\\cos(\\alpha)"}
-{"input": "квадратный корень из икс", "expected": "\\sqrt{x}"}
 {"input": "тангенс икс", "expected": "\\tan(x)"}
 {"input": "котангенс альфа", "expected": "\\cot(\\alpha)"}
 {"input": "арксинус икс", "expected": "\\arc\\sin(x)"}

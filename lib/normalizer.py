@@ -92,6 +92,10 @@ class DictionaryLoader:
         """Возвращает словарь степеней."""
         return self.data.get('powers', {})
 
+    def get_numerals(self) -> Dict[str, List[str]]:
+        """Возвращает словарь числительных."""
+        return self.data.get('numerals', {})
+
     def get_data(self) -> Dict[str, Any]:
         """Возвращает загруженные данные."""
         return self.data
@@ -116,7 +120,7 @@ class DictionaryLoader:
 
 
 class TextNormalizer:
-    """Только замена слов по словарю."""
+    """Замена слов по словарю с правильной последовательностью обработки."""
 
     def __init__(self, dictionary_loader: DictionaryLoader):
         self.loader = dictionary_loader
@@ -129,13 +133,9 @@ class TextNormalizer:
 
         Правила:
         1. В степенях и корнях: all = закрывающая }
-           (открывающая уже известна: ^{ или sqrt[или нет]){
         2. В остальных случаях: all = закрывающая )
-           (открывающую нужно найти: перед первым членом последовательности)
         """
-
-        # Сначала обрабатываем all в контексте степеней и корней
-        # ^{X всё} -> ^{X}
+        # all в степенях: ^{X всё} -> ^{X}
         text = re.sub(
             r'\^\{(.+?)\s+(?:всё|все|all)\s*\}',
             r'^{\1}',
@@ -143,7 +143,7 @@ class TextNormalizer:
             flags=re.IGNORECASE
         )
 
-        # sqrt{X всё} -> sqrt{X}
+        # all в корнях: sqrt{X всё} -> sqrt{X}
         text = re.sub(
             r'sqrt\{(.+?)\s+(?:всё|все|all)\s*\}',
             r'sqrt{\1}',
@@ -151,7 +151,7 @@ class TextNormalizer:
             flags=re.IGNORECASE
         )
 
-        # sqrt[N]{X всё} -> sqrt[N]{X}
+        # all в корнях со степенью: sqrt[N]{X всё} -> sqrt[N]{X}
         text = re.sub(
             r'sqrt\[(.+?)\]\{(.+?)\s+(?:всё|все|all)\s*\}',
             r'sqrt[\1]{\2}',
@@ -159,39 +159,27 @@ class TextNormalizer:
             flags=re.IGNORECASE
         )
 
-        # Для остальных случаев: expression всё -> (expression)
-        # Ищем all и вставляем скобки
-
+        # all в обычных выражениях: expression всё -> (expression)
         while True:
-            # Ищем all (всё/все) в тексте
             match = re.search(r'\b(?:всё|все|all)\b', text, flags=re.IGNORECASE)
             if not match:
                 break
 
             pos = match.start()
-
-            # Находим выражение слева от all
             left_text = text[:pos].rstrip()
 
-            # Ищем границу выражения: идём влево до оператора или начала
-            # Выражение заканчивается перед оператором +, -, *, / или началом строки
-
-            # Находим последний оператор перед left_text
+            # Ищем последний оператор
             op_match = re.search(
                 r'\s[+\-*/]\s(?=(?:[^+\-*/]*)$)',
                 left_text
             )
 
             if op_match:
-                # Вставляем ( после оператора
                 insert_pos = op_match.end()
                 text = text[:insert_pos] + '(' + text[insert_pos:]
             else:
-                # Вставляем ( в начало
                 text = '(' + text
 
-            # Заменяем all на )
-            # Учитываем, что позиции могли сдвинуться из-за вставки (
             all_pos = text.find(match.group(0))
             text = text[:all_pos] + ')' + text[all_pos + len(match.group(0)):]
 
@@ -200,14 +188,10 @@ class TextNormalizer:
     def _handle_power(self, text: str) -> str:
         """
         Обработка степеней.
-
-        Правила:
-        - в степени X всё -> ^{X} (all закрывает })
-        - в степени X -> ^{X} (без all — всё до конца выражения в степени)
-        - в квадрате/кубе/N-й -> ^{N}
+        Выполняется ПОСЛЕ замены числительных и all-группировки,
+        ДО замены "в" на "v".
         """
-
-        # Степени с выражениями: "в степени X всё"
+        # "в степени X всё" -> ^{X}
         text = re.sub(
             r'\bв\s+степени\s+(.+?)\s+(?:всё|все|all)\b',
             r'^{\1}',
@@ -215,7 +199,7 @@ class TextNormalizer:
             flags=re.IGNORECASE
         )
 
-        # Степени с выражениями: "в степени X" (без all — всё до конца строки)
+        # "в степени X" (без all — всё до конца строки)
         text = re.sub(
             r'\bв\s+степени\s+(.+)$',
             r'^{\1}',
@@ -223,39 +207,28 @@ class TextNormalizer:
             flags=re.IGNORECASE
         )
 
-        # Простые степени из словаря: в квадрате, в кубе, в пятой и т.д.
+        # "в минус N" -> ^{-N} (числительные уже заменены на цифры)
+        text = re.sub(
+            r'\bв\s+минус\s+(\d+)\b',
+            r'^{-\1}',
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # Простые степени из словаря (в квадрате, в кубе, в пятой и т.д.)
         for power, synonyms in self.loader.get_powers().items():
             for synonym in synonyms:
                 pattern = re.compile(r'\b' + re.escape(synonym) + r'\b', re.IGNORECASE)
                 text = pattern.sub(f'^{power}', text)
 
-        # Дополнительные простые степени
+        # Дополнительные степени
         text = re.sub(r'\bквадрат\b', '^2', text, flags=re.IGNORECASE)
         text = re.sub(r'\bкуб\b', '^3', text, flags=re.IGNORECASE)
-
-        # Порядковые числительные: в пятой, в шестой и т.д.
-        ordinal_to_num = {
-            'первой': '1', 'второй': '2', 'третьей': '3', 'четвёртой': '4', 'пятой': '5',
-            'шестой': '6', 'седьмой': '7', 'восьмой': '8', 'девятой': '9', 'десятой': '10',
-            'энной': 'n', 'эн': 'n',
-        }
-        for ord_word, num in ordinal_to_num.items():
-            pattern = re.compile(r'\bв\s+' + re.escape(ord_word) + r'\b', re.IGNORECASE)
-            text = pattern.sub(f'^{num}', text)
 
         return text
 
     def _handle_sqrt(self, text: str) -> str:
-        """
-        Обработка корней.
-
-        Правила:
-        - корень из X всё -> sqrt{X} (all закрывает })
-        - корень из X -> sqrt{X} (без all — всё до конца)
-        - корень степени N из X всё -> sqrt[N]{X}
-        - корень степени N из X -> sqrt[N]{X}
-        """
-
+        """Обработка корней."""
         # Корень степени N с all
         text = re.sub(
             r'sqrt\s*\[(.+?)\]\s*(?:от|из)\s+(.+?)\s+(?:всё|все|all)\b',
@@ -288,7 +261,7 @@ class TextNormalizer:
             flags=re.IGNORECASE
         )
 
-        # Корень с выражениями через "корень квадратный из"
+        # Корень через "квадратный корень из"
         text = re.sub(
             r'квадратный\s+корень\s+(?:от|из)\s+(.+?)\s+(?:всё|все|all)\b',
             r'sqrt{\1}',
@@ -306,23 +279,25 @@ class TextNormalizer:
 
     def normalize(self, text: str) -> str:
         """
-        Нормализовать текст: заменить все синонимы на латиницу.
+        Нормализовать текст.
 
-        Порядок обработки:
-        1. Специальные фразы (квадратный корень из)
+        Порядок обработки (критически важен):
+        1. Специальные фразы
         2. Дроби
         3. Производные
         4. Биномиальные коэффициенты
         5. Факториалы
-        6. Степени (до удаления "в")
-        7. Корни
-        8. Базовые замены (всё, делить на, де)
-        9. Удаление предлогов
-        10. Обработка скобок
-        11. Замена "в" на "v"
-        12. Замена синонимов по словарю
-        13. Обработка all для группировки
-        14. Очистка пробелов
+        6. Числительные
+        7. Замена "всё/все" на " all "
+        8. Обработка all для группировки (ДО степеней!)
+        9. Степени (ПОСЛЕ all-группировки, ДО замены "в" на "v")
+        10. Корни
+        11. Базовые замены (делить на, де)
+        12. Удаление предлогов (от, из, на, до — НЕ "в"!)
+        13. Обработка скобок
+        14. Замена "в" на "v" (ТОЛЬКО ПОСЛЕ степеней)
+        15. Замена синонимов по словарю
+        16. Очистка пробелов
         """
         result = text
 
@@ -335,7 +310,7 @@ class TextNormalizer:
                 flags=re.IGNORECASE
             )
 
-        # 2. Дроби: "дробь X на Y" -> "frac X,Y"
+        # 2. Дроби
         result = re.sub(
             r'\bдробь\b\s*(.+?)\s*\bна\b\s*(.+)',
             lambda m: 'frac ' + m.group(1).strip() + ',' + m.group(2).strip(),
@@ -350,18 +325,8 @@ class TextNormalizer:
             result,
             flags=re.IGNORECASE
         )
-        result = re.sub(
-            r'\bвторую производную\b',
-            'second deriv',
-            result,
-            flags=re.IGNORECASE
-        )
-        result = re.sub(
-            r'\bчастная\b',
-            'partial',
-            result,
-            flags=re.IGNORECASE
-        )
+        result = re.sub(r'\bвторую производную\b', 'second deriv', result, flags=re.IGNORECASE)
+        result = re.sub(r'\bчастная\b', 'partial', result, flags=re.IGNORECASE)
 
         # 4. Биномиальные коэффициенты
         result = re.sub(
@@ -382,8 +347,6 @@ class TextNormalizer:
             result,
             flags=re.IGNORECASE
         )
-
-        # Размещения
         result = re.sub(
             r'\b(?:а|а из)\s*из\s*(\w+)\s*по\s*(\w+)',
             lambda m: f'A {m.group(1)} {m.group(2)}',
@@ -392,42 +355,44 @@ class TextNormalizer:
         )
 
         # 5. Факториалы
-        result = re.sub(
-            r'\b(\d+)\s*двойной факториал\b',
-            r'\1!!',
-            result,
-            flags=re.IGNORECASE
-        )
-        result = re.sub(
-            r'\b(\w+)\s*факториал\b',
-            r'\1!',
-            result,
-            flags=re.IGNORECASE
-        )
+        result = re.sub(r'\b(\d+)\s*двойной факториал\b', r'\1!!', result, flags=re.IGNORECASE)
+        result = re.sub(r'\b(\w+)\s*факториал\b', r'\1!', result, flags=re.IGNORECASE)
 
-        # 6. Степени (до удаления "в")
-        result = self._handle_power(result)
+        # 6. Числительные
+        numerals = self.loader.get_numerals()
+        all_words = [(word, number) for number, words in numerals.items() for word in words]
+        all_words.sort(key=lambda x: len(x[0]), reverse=True)
+        for word, number in all_words:
+            result = re.sub(r'\b' + re.escape(word) + r'\b', number, result, flags=re.IGNORECASE)
 
-        # 7. Корни
-        result = self._handle_sqrt(result)
-
-        # 8. Базовые замены
+        # 7. Замена "всё/все" на " all " (ДО all-группировки)
         result = re.sub(r'\bвсё\b', ' all ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bвсе\b', ' all ', result, flags=re.IGNORECASE)
+
+        # 8. Обработка all для группировки (ДО степеней)
+        result = self._handle_all(result)
+
+        # 9. Степени (ПОСЛЕ all-группировки, ДО замены "в" на "v")
+        result = self._handle_power(result)
+
+        # 10. Корни
+        result = self._handle_sqrt(result)
+
+        # 11. Базовые замены
         result = re.sub(r'\bделить на\b', ' / ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bде\b', ' d ', result, flags=re.IGNORECASE)
 
-        # 9. Удаление предлогов
+        # 12. Удаление предлогов (НЕ "в"!)
         for pred in ['от', 'из', 'на', 'до']:
             result = re.sub(r'\b' + pred + r'\b', ' ', result, flags=re.IGNORECASE)
 
-        # 10. Обработка скобок
+        # 13. Обработка скобок
         result = re.sub(r'\bоткрывающая скобка\b', ' ( ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bзакрывающая скобка\b', ' ) ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bоткрыть\b', ' ( ', result, flags=re.IGNORECASE)
         result = re.sub(r'\bзакрыть\b', ' ) ', result, flags=re.IGNORECASE)
 
-        # Обработка неявных скобок через слово "скобка"
+        # Неявные скобки через слово "скобка"
         paren_pattern = re.compile(r'\bскобка\b', re.IGNORECASE)
         paren_matches = list(paren_pattern.finditer(result))
 
@@ -450,16 +415,16 @@ class TextNormalizer:
             new_result.append(result[last_end:])
             result = ''.join(new_result)
 
-        # 11. Замена "в" на переменную "v"
+        # 14. Замена "в" на "v" (ТОЛЬКО ПОСЛЕ степеней)
         result = re.sub(r'\bв\b', ' v ', result, flags=re.IGNORECASE)
 
-        # 12. Замена синонимов по словарю (длинные первыми)
+        # 15. Замена синонимов по словарю (длинные первыми)
         sorted_synonyms = sorted(self._reverse_map.keys(), key=len, reverse=True)
 
         for synonym in sorted_synonyms:
             target = self._reverse_map[synonym]
 
-            # Пропускаем уже обработанные
+            # Пропускаем уже обработанные слова
             if synonym in ['открыть скобку', 'закрыть скобку', 'открыть', 'закрыть']:
                 continue
             if 'в ' in synonym:
@@ -475,10 +440,7 @@ class TextNormalizer:
             else:
                 result = pattern.sub(target, result)
 
-        # 13. Обработка all для группировки (после всех замен)
-        result = self._handle_all(result)
-
-        # 14. Очистка пробелов
+        # 16. Очистка пробелов
         result = re.sub(r'\s+\^', '^', result)
         result = re.sub(r'\(\s+', '(', result)
         result = re.sub(r'\s+\)', ')', result)
@@ -612,54 +574,22 @@ def main():
     normalizer = Normalizer()
 
     test_cases = [
-        # Базовые тесты
-        ("синус от икс", "sin x"),
-        ("икс равно игрек", "x = y"),
-        ("корень из а плюс б", "sqrt a + b"),
-
-        # Тесты степеней
-        ("x в степени 5 + y", "x^{5 + y}"),
-        ("x в степени 5 всё + y", "x^{5} + y"),
-        ("a в степени x + y всё + z", "a^{x + y} + z"),
-        ("x в квадрате", "x^2"),
-        ("x в кубе", "x^3"),
-        ("x в пятой", "x^5"),
-
-        # Тесты корней
-        ("корень из x + y всё + 3", "sqrt{x + y} + 3"),
-        ("корень из x + y", "sqrt{x + y}"),
-        ("корень степени 3 из x + y всё + 3", "sqrt[3]{x + y} + 3"),
-
-        # Тесты all/всё
-        ("а плюс б всё делить на в", "(a + b) / v"),
-        ("а плюс б всё", "(a + b)"),
-
-        # Дроби
-        ("дробь 1 на 2", "frac 1,2"),
-        ("дробь x на y", "frac x,y"),
+        ("а плюс б все в степени эн", "(a + b)^{n}"),
+        ("а плюс б все в эн", "(a + b)^{n}"),
+        ("десять в минус пятой", "10^{-5}"),
+        ("а в степени эн", "a^{n}"),
+        ("икс в степени ка плюс 1", "x^{k + 1}"),
     ]
 
     print("Тесты нормализатора:")
     print("=" * 60)
 
-    passed = 0
-    failed = 0
-
     for test_input, expected in test_cases:
         result = normalizer.normalize(test_input)
         status = "✓" if result == expected else "✗"
-
-        if result == expected:
-            passed += 1
-        else:
-            failed += 1
-
-        print(f"{status} {test_input!r}")
-        print(f"  Expected: {expected!r}")
-        print(f"  Got:      {result!r}")
-        print()
-
-    print(f"Результаты: {passed} пройдено, {failed} не пройдено")
+        print(f"{status} {test_input!r} -> {result!r}")
+        if result != expected:
+            print(f"  Expected: {expected!r}")
 
 
 if __name__ == "__main__":

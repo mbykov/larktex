@@ -20,6 +20,33 @@ def load_grammar():
 
 class ASTBuilder(Transformer):
     """Lark Transformer -> AST."""
+    #
+    def curly_group(self, children):
+      """Обработка фигурных скобок: {expr} -> expr (без узла скобок)"""
+      if len(children) == 3:
+        # ['{', expr, '}'] -> возвращаем expr
+        return children[1]
+      elif len(children) == 1:
+        return children[0]
+      return children[0] if children else None
+
+    def CURLY_LEFT(self, t):
+      return '{'
+
+    def CURLY_RIGHT(self, t):
+      return '}'
+
+    def mult_seq(self, children):
+      """Преобразует последовательность primary в цепочку умножений."""
+      if len(children) == 1:
+        return children[0]
+
+      # Создаем цепочку BinOpNode('*', ...)
+      result = children[0]
+      for child in children[1:]:
+        result = BinOpNode('*', result, child)
+
+      return result
 
     def start(self, children):
         return children[0] if children else None
@@ -44,11 +71,18 @@ class ASTBuilder(Transformer):
     def PROP(self, t): return 'prop'
     def EQUIV(self, t): return 'equiv'
 
+    #
     def additive(self, children):
-        if len(children) == 1:
-            return children[0]
-        left, op, right = children[0], children[1], children[2]
-        return BinOpNode(op=str(op), left=left, right=right)
+      if len(children) == 1:
+        return children[0]
+      # Унарный минус/плюс в начале
+      if len(children) == 2 and isinstance(children[0], Token):
+        op = str(children[0])
+        return UnaryOpNode(op=op, operand=children[1])
+      # Бинарная операция
+      left, op, right = children[0], children[1], children[2]
+      return BinOpNode(op=str(op), left=left, right=right)
+
 
     def PLUS(self, t): return '+'
     def MINUS(self, t): return '-'
@@ -71,12 +105,20 @@ class ASTBuilder(Transformer):
     def EXP(self, t): return '^'
 
     def primary(self, children):
-        if not children:
-            return None
-        if isinstance(children[0], str) and children[0] == '(':
-            inner = children[1] if len(children) > 1 else NumberNode('0')
-            return ParensNode(inner=inner)
+      if not children:
+        return None
+      # Обработка UNARY primary
+      if len(children) == 2 and isinstance(children[0], str) and children[0] in ('-', '+'):
+        return UnaryOpNode(op=children[0], operand=children[1])
+      # Обработка круглых скобок
+      if isinstance(children[0], str) and children[0] == '(':
+        inner = children[1] if len(children) > 1 else NumberNode('0')
+        return ParensNode(inner=inner)
+      # Обработка curly_group
+      if len(children) == 1 and isinstance(children[0], ASTNode):
         return children[0]
+      return children[0]
+
 
     def NUMBER(self, t):
         return NumberNode(value=str(t))

@@ -61,8 +61,8 @@ class UnaryOpNode:
     operand: 'ASTNode'
 
     def to_latex(self) -> str:
+        # Унарный минус/плюс: без пробела
         return f"{self.op}{self.operand.to_latex()}"
-
 
 @dataclass
 class BinOpNode:
@@ -74,23 +74,24 @@ class BinOpNode:
     def to_latex(self) -> str:
         left = self.left.to_latex()
         right = self.right.to_latex()
+
         if self.op == '/':
-            # Для BinOpNode '/' генерируем как a / b со скобками
-            left_latex = f"({left})" if isinstance(self.left, BinOpNode) else left
-            right_latex = f"({right})" if isinstance(self.right, BinOpNode) else right
-            return f"{left_latex} / {right_latex}"
+            # Деление через \frac
+            return f"\\frac{{{left}}}{{{right}}}"
+
         elif self.op == '^':
-            exp = right
-            if len(exp) == 1 and exp.isdigit():
-                return f"{left}^{exp}"
-            return f"{left}^{{{exp}}}"
+            # Степень
+            return f"{left}^{{{right}}}"
+
         elif self.op == '*':
-            # Особый случай: d * x → d x (дифференциал)
+            # Умножение: для дифференциалов - без знака, иначе \cdot
             if isinstance(self.left, VarNode) and self.left.name == 'd':
-                return f"d {right}"
-            return f"{left} * {right}"
+                return f"d{right}"
+            return f"{left}\\cdot{right}"
+
         else:
-            return f"{left} {self.op} {right}"
+            # Сложение и вычитание: без пробелов в LaTeX
+            return f"{left}{self.op}{right}"
 
 
 @dataclass
@@ -101,12 +102,13 @@ class RelationNode:
     right: 'ASTNode'
 
     _latex = {
-        '=': '=', '!=': r'\neq', '<': '<', '>': '>',
-        '<=': r'\leq', '>=': r'\geq', 'approx': r'\approx',
-        'similar': r'\sim', 'prop': r'\propto', 'equiv': r'\equiv',
+        '=': '=', '!=': '\\neq', '<': '<', '>': '>',
+        '<=': '\\leq', '>=': '\\geq', 'approx': '\\approx',
+        'similar': '\\sim', 'prop': '\\propto', 'equiv': '\\equiv',
     }
 
     def to_latex(self) -> str:
+        # Отношения: с пробелами для читаемости
         return f"{self.left.to_latex()} {self._latex.get(self.op, self.op)} {self.right.to_latex()}"
 
 
